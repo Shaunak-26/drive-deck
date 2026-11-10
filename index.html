@@ -785,9 +785,13 @@ input.opt::placeholder{color:var(--dim);opacity:.6}
 .spd .big.a{color:var(--a)}.spd .big.r{color:var(--r)}
 .spd .u{font:12px var(--mono)}
 .spd .tgt{font:700 20px var(--mono);color:var(--m)}
-.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.strip{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:8px 0}
 .strip div{background:var(--ecam);border:1px solid var(--line);border-radius:10px;padding:6px 7px;font:11px var(--mono)}
-.strip b{display:block;font-size:15px;color:var(--g)}
+.strip b{display:block;font-size:14px;color:var(--g);white-space:nowrap}
+.strip small{display:block;font-size:10px;font-weight:700}
+.spd .big.r{animation:blink 1s steps(2) infinite}@keyframes blink{50%{opacity:.35}}
+.hist{font:12px var(--mono);margin-top:6px}
+.sheet .row{margin-bottom:10px}
 .live-top{background:var(--ecam);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
 .live-k{font:11px var(--mono);letter-spacing:.12em}
 .live-phase{font-size:18px;font-weight:700;margin:2px 0}
@@ -810,6 +814,12 @@ input.opt::placeholder{color:var(--dim);opacity:.6}
 .slider{display:flex;align-items:center;gap:10px;font:12px var(--mono)}
 .slider input{padding:0;accent-color:var(--c)}
 .spin{display:inline-block;animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.map.dk .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.88) saturate(.5)}
+.now{background:var(--ecam);border:1px solid var(--c);border-radius:12px;padding:8px 12px;margin-bottom:8px}
+.now .ec{padding:6px 0}
+.ec.cur{outline:1px solid var(--c);border-radius:6px;padding-left:6px;padding-right:6px;background:rgba(63,216,255,.08)}
+.wxleg{position:absolute;z-index:1000;left:8px;bottom:22px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 7px;font:10px var(--mono);display:flex;gap:7px;align-items:center;color:var(--w)}
+.wxleg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:3px;vertical-align:-1px}
 .pumps div{display:flex;justify-content:space-between;font:13px var(--mono);padding:6px 0;border-bottom:1px solid var(--line);color:var(--c)}
 </style>
 </head>
@@ -874,7 +884,7 @@ input.opt::placeholder{color:var(--dim);opacity:.6}
 <!-- ============ DRIVE ============ -->
 <section class="view" id="v-drive">
   <div id="dTop"></div>
-  <div class="mapbtns"><div id="dMap" class="map"></div><button class="mb" id="dFollow" style="top:8px">FOLLOW</button><button class="mb" id="dOverview" style="top:48px">ROUTE</button></div>
+  <div class="mapbtns" id="dWrap"><div id="dMap" class="map"></div><button class="mb" id="dFollow" style="top:8px">FOLLOW</button><button class="mb" id="dOverview" style="top:48px">ROUTE</button><button class="mb wxb" style="top:88px">WX</button><div class="wxleg"></div></div>
   <div id="liveOut"></div>
 </section>
 
@@ -923,8 +933,14 @@ input.opt::placeholder{color:var(--dim);opacity:.6}
     <label>Voice guidance</label>
     <div class="toggle" id="voice"><button data-v="on">ON</button><button data-v="off">OFF</button></div>
     <div style="height:10px"></div>
+    <label>Aural warnings (overspeed)</label>
+    <div class="toggle" id="aural"><button data-v="on">ON</button><button data-v="off">OFF</button></div>
+    <div style="height:10px"></div>
     <label>Display</label>
     <div class="toggle" id="theme"><button data-v="auto">AUTO</button><button data-v="day">DAY</button><button data-v="night">NIGHT</button></div>
+    <div style="height:10px"></div>
+    <label>Map key (optional)</label>
+    <input id="cartoKey" class="opt" placeholder="CARTO KEY" autocomplete="off">
   </div>
   <h2>OFFLINE MAP</h2>
   <div class="card">
@@ -965,9 +981,10 @@ const TYPES={
   ghat_down: {label:'GHAT · DESCENT',eco:35,cap:45,kmpl:30,  cruise:false},
 };
 const OSRM=['https://router.project-osrm.org/route/v1/driving/','https://routing.openstreetmap.de/routed-car/route/v1/driving/'];
-const OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
-const TILES={night:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',dusk:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',day:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'};
-const ATTR='© OpenStreetMap contributors © CARTO';
+const OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+function tileSpec(t){const k=(S.cartoKey||'').trim();
+  if(k)return{url:`https://{s}.basemaps.cartocdn.com/rastertiles/${t==='day'?'voyager':'dark_all'}/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(k)}`,sub:'abcd',attr:'© OpenStreetMap contributors © CARTO',dark:false};
+  return{url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',sub:'abc',attr:'© OpenStreetMap contributors',dark:t!=='day'}}
 const KEY='celerioNavV1';
 const FUEL_STOP_MIN=12;
 const LAT0=19.1,LON0=72.9;
@@ -975,7 +992,7 @@ const pad2=n=>String(n).padStart(2,'0');
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())};
 const DEF={origin:{q:''},dest:{q:''},wps:[],date:today(),dep:'',arr:'',pax:'1',bars:'',lpb:2.5,reserve:2,tank:35,calib:100,
   wxMode:'auto',tmax:'',rain:'none',parked:'sun',tyreF:33,tyreR:33,tyreLoad:2,theme:'auto',voice:'on',
-  ciMode:'auto',ci:0,checks:{},tab:'setup',liveAvg:'',route:null,routeKey:'',live:null};
+  ciMode:'auto',ci:0,checks:{},tab:'setup',liveAvg:'',route:null,routeKey:'',live:null,wxLayer:'rain',cartoKey:'',aural:'on',density:''};
 let S;
 try{S=Object.assign({},DEF,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){S=Object.assign({},DEF)}
 let saveT=null;
@@ -1022,7 +1039,7 @@ let curTheme=null;
 function applyTheme(){const t=S.theme==='auto'?lightAt(new Date()):S.theme;
   document.body.classList.toggle('day',t==='day');document.body.classList.toggle('dusk',t==='dusk');
   const meta=document.querySelector('meta[name=theme-color]');if(meta)meta.content=t==='day'?'#e9eef3':t==='dusk'?'#16202b':'#04070b';
-  if(t!==curTheme){curTheme=t;[MAPS.plan,MAPS.drive].forEach(m=>m&&m.tiles.setUrl(TILES[t]))}}
+  if(t!==curTheme){curTheme=t;[MAPS.plan,MAPS.drive].forEach(m=>m&&setTiles(m))}}
 
 /* ============================== NETWORK ============================== */
 async function getJSON(url,opts={},timeout=25000){const c=new AbortController();const t=setTimeout(()=>c.abort(),timeout);
@@ -1050,11 +1067,43 @@ async function osrmRoute(pts){const c=pts.map(p=>(+p.lon).toFixed(6)+','+(+p.lat
 async function elevations(points){const out=[];for(let i=0;i<points.length;i+=100){const ch=points.slice(i,i+100);
   const j=await getJSON(`https://api.open-meteo.com/v1/elevation?latitude=${ch.map(p=>p[0].toFixed(4)).join(',')}&longitude=${ch.map(p=>p[1].toFixed(4)).join(',')}`,{},20000);
   out.push(...(j.elevation||[]))}return out}
-async function forecast(points){const j=await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${points.map(p=>p[0].toFixed(3)).join(',')}&longitude=${points.map(p=>p[1].toFixed(3)).join(',')}&hourly=temperature_2m,precipitation_probability,precipitation&timezone=Asia%2FKolkata&forecast_days=10`,{},25000);
+async function forecast(points){const j=await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${points.map(p=>p[0].toFixed(3)).join(',')}&longitude=${points.map(p=>p[1].toFixed(3)).join(',')}&hourly=temperature_2m,precipitation_probability,precipitation,weather_code&timezone=Asia%2FKolkata&forecast_days=5`,{},25000);
   return Array.isArray(j)?j:[j]}
-async function pumpsAlong(){const pts=[];for(let s=0;s<=G.total;s+=1500){const p=pointAt(s);pts.push(p[0].toFixed(5)+','+p[1].toFixed(5))}
-  const q=`[out:json][timeout:40];(node["amenity"="fuel"](around:300,${pts.join(',')});way["amenity"="fuel"](around:300,${pts.join(',')}););out center tags;`;
-  let err;for(const u of OVERPASS){try{const j=await getJSON(u,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+enc(q)},45000);return j.elements||[]}catch(e){err=e}}throw err}
+async function pumpsAlong(){const boxes=[];const step=15000;
+  for(let a=0;a<G.total;a+=step){const b=Math.min(G.total,a+step);const pa=pointAt(a),pb=pointAt(b);let so=90,we=180,no=-90,ea=-180;
+    for(let i=pa[2];i<=Math.min(G.n-1,pb[2]+1);i++){so=Math.min(so,G.lat[i]);no=Math.max(no,G.lat[i]);we=Math.min(we,G.lon[i]);ea=Math.max(ea,G.lon[i])}
+    const d=.004;boxes.push([so-d,we-d,no+d,ea+d].map(x=>x.toFixed(4)).join(','))}
+  const all=[];let err=null;
+  for(let i=0;i<boxes.length;i+=12){const part=boxes.slice(i,i+12).map(b=>`node["amenity"="fuel"](${b});way["amenity"="fuel"](${b});`).join('');
+    const q=`[out:json][timeout:50];(${part});out center tags;`;let ok=false;
+    for(const u of OVERPASS){try{const j=await getJSON(u,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+enc(q)},55000);
+      if(j.remark&&/error|timed out|out of memory/i.test(j.remark))throw new Error(j.remark);all.push(...(j.elements||[]));ok=true;break}catch(e){err=e}}
+    if(!ok)throw err||new Error('PUMPS')}
+  return all}
+function processPumps(els){const list=[];const seen=new Set();
+  els.forEach(x=>{const la=x.lat??(x.center&&x.center.lat),lo=x.lon??(x.center&&x.center.lon);if(la==null)return;const id=x.type+x.id;if(seen.has(id))return;seen.add(id);const t=x.tags||{};
+    const name=(t.brand||t.name||t.operator||'FUEL').toString();const n2=(t.name||'')+' '+(t.brand||'');
+    if(/\b(cng|ev|charging|electric)\b/i.test(n2)&&!/(petrol|indian oil|iocl|bharat|bpcl|hindustan|hpcl|\bhp\b|reliance|jio-bp|nayara|essar|shell)/i.test(n2))return;
+    const sp=snap(la,lo,null);if(!sp||sp.d>350)return;list.push({lat:la,lon:lo,s:Math.round(sp.s),name:name.toUpperCase().slice(0,26)})});
+  list.sort((a,b)=>a.s-b.s);const ded=[];list.forEach(p=>{if(!ded.length||p.s-ded[ded.length-1].s>150)ded.push(p)});return ded}
+function offsetPt(lat,lon,brg,dist){const d=dist/R_E,b=rad(brg),l1=rad(lat),o1=rad(lon);const l2=Math.asin(Math.sin(l1)*Math.cos(d)+Math.cos(l1)*Math.sin(d)*Math.cos(b));
+  const o2=o1+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(l1),Math.cos(d)-Math.sin(l1)*Math.sin(l2));return[l2*180/Math.PI,o2*180/Math.PI]}
+async function fetchWx(){const ss=sampleEvery(Math.max(15000,G.total/30));const pts=[];
+  ss.forEach(s=>{const p=pointAt(s);pts.push({s,side:0,lat:p[0],lon:p[1]});const q=pointAt(Math.min(G.total,s+800)),q0=pointAt(Math.max(0,s-800));const br=bearing(q0[0],q0[1],q[0],q[1]);
+    [-1,1].forEach(sd=>{const o=offsetPt(p[0],p[1],br+90*sd,13000);pts.push({s,side:sd,lat:o[0],lon:o[1]})})});
+  const arr=[];for(let i=0;i<pts.length;i+=50){const ch=pts.slice(i,i+50);arr.push(...await forecast(ch.map(p=>[p.lat,p.lon])))}
+  const dep=depDate().getTime();
+  S.route.wx={samples:pts.map((p,i)=>{const h=(arr[i]&&arr[i].hourly)||{};const t0=(h.time||[])[0];if(!t0)return{s:Math.round(p.s),side:p.side,lat:p.lat,lon:p.lon,t0ms:null,T:[],P:[],R:[],C:[]};
+    const t0ms=new Date(t0).getTime();const i0=Math.max(0,Math.floor((dep-t0ms)/36e5)-2);const sl=a=>(a||[]).slice(i0,i0+36);
+    return{s:Math.round(p.s),side:p.side,lat:+p.lat.toFixed(4),lon:+p.lon.toFixed(4),t0ms:t0ms+i0*36e5,
+      T:sl(h.temperature_2m).map(v=>v==null?null:Math.round(v*10)/10),P:sl(h.precipitation_probability).map(v=>v==null?null:Math.round(v)),
+      R:sl(h.precipitation).map(v=>v==null?null:Math.round(v*10)/10),C:sl(h.weather_code).map(v=>v==null?null:v)}}),at:Date.now()};
+  if(!S.route.wx.samples.some(x=>x.side===0&&x.T.length))throw new Error('NO WX')}
+async function currentWx(lat,lon){const j=await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}&current=temperature_2m,precipitation,weather_code&hourly=precipitation_probability&forecast_hours=2&timezone=Asia%2FKolkata`,{},12000);
+  const c=j.current||{};return{T:c.temperature_2m,R:num(c.precipitation),code:num(c.weather_code),P1:num(((j.hourly||{}).precipitation_probability||[])[1])}}
+function wxText(c){c=num(c);if(c===0)return'clear sky';if(c<=2)return'partly cloudy';if(c===3)return'overcast';if(c===45||c===48)return'fog';if(c>=51&&c<=57)return'drizzle';
+  if(c===61)return'light rain';if(c===63)return'rain';if(c===65)return'heavy rain';if(c>=66&&c<=67)return'freezing rain';if(c>=80&&c<=81)return'rain showers';if(c===82)return'heavy showers';if(c>=95)return'thunderstorm';return'fair'}
+function rainFromCode(c){c=num(c);if(c===65||c===82||c>=95)return'heavy';if((c>=51&&c<=57)||(c>=61&&c<=67)||(c>=80&&c<=81))return'light';return'none'}
 
 /* ============================== ROUTE PROCESSING ============================== */
 function processRoute(r,pts){
@@ -1078,25 +1127,15 @@ async function enrichRoute(log){
   try{log('TERRAIN','run');const ss=sampleEvery(1000);const pts=ss.map(s=>pointAt(s));const el=await elevations(pts);
     S.route.elev={step:1000,e:el.map(x=>Math.round(num(x)))};log('TERRAIN','ok')}catch(e){S.route.elev=null;log('TERRAIN','fail')}
   // pumps
-  try{log('FUEL PUMPS','run');const els=await pumpsAlong();const list=[];
-    els.forEach(x=>{const la=x.lat??(x.center&&x.center.lat),lo=x.lon??(x.center&&x.center.lon);if(la==null)return;const t=x.tags||{};
-      const name=(t.brand||t.name||t.operator||'FUEL').toString();
-      const n2=(t.name||'')+' '+(t.brand||'');
-      if(/\b(cng|ev|charging|electric)\b/i.test(n2)&&!/(petrol|indian oil|iocl|bharat|bpcl|hindustan|hpcl|\bhp\b|reliance|jio-bp|nayara|essar|shell)/i.test(n2))return;
-      if(t['fuel:octane_91']==='no'&&t['fuel:diesel']==='yes'&&t['fuel:cng']!=='yes'){}
-      const sp=snap(la,lo,null);if(!sp||sp.d>350)return;list.push({lat:la,lon:lo,s:Math.round(sp.s),name:name.toUpperCase().slice(0,26)})});
-    list.sort((a,b)=>a.s-b.s);const ded=[];list.forEach(p=>{if(!ded.length||p.s-ded[ded.length-1].s>150)ded.push(p)});
+  try{log('FUEL PUMPS','run');const ded=processPumps(await pumpsAlong());
     S.route.pumps=ded;log('FUEL PUMPS','ok',ded.length+'')}catch(e){S.route.pumps=null;log('FUEL PUMPS','fail')}
   // weather
-  try{log('WEATHER','run');const ss=sampleEvery(Math.max(15000,G.total/30));const pts=ss.map(s=>pointAt(s));const arr=await forecast(pts);
-    S.route.wx={samples:ss.map((s,i)=>{const h=(arr[i]&&arr[i].hourly)||{};return{s:Math.round(s),t0:(h.time||[])[0]||null,
-      T:(h.temperature_2m||[]).map(v=>v==null?null:Math.round(v*10)/10),P:(h.precipitation_probability||[]).map(v=>v==null?null:Math.round(v)),
-      R:(h.precipitation||[]).map(v=>v==null?null:Math.round(v*10)/10)}}),at:Date.now()};log('WEATHER','ok')}catch(e){S.route.wx=null;log('WEATHER','fail')}
+  try{log('WEATHER','run');await fetchWx();log('WEATHER','ok')}catch(e){S.route.wx=null;log('WEATHER','fail')}
   S.route.zones=buildZones();
 }
-function wxAt(s,d){const W=S.route&&S.route.wx;if(!W)return null;let best=null;W.samples.forEach(x=>{if(!best||Math.abs(x.s-s)<Math.abs(best.s-s))best=x});
-  if(!best||!best.t0)return null;const i=Math.round((d-new Date(best.t0))/36e5);if(i<0||i>=best.T.length||best.T[i]==null)return null;
-  return{T:best.T[i],P:num(best.P[i],0),R:num(best.R[i],0)}}
+function wxAt(s,d){const W=S.route&&S.route.wx;if(!W)return null;let best=null;W.samples.forEach(x=>{if(x.side)return;if(!best||Math.abs(x.s-s)<Math.abs(best.s-s))best=x});
+  if(!best||!best.t0ms)return null;const i=Math.round((d-best.t0ms)/36e5);if(i<0||i>=best.T.length||best.T[i]==null)return null;
+  return{T:best.T[i],P:num(best.P[i],0),R:num(best.R[i],0),C:num(best.C&&best.C[i],0)}}
 
 /* ---------- zones from route ---------- */
 function stepAtS(s){const st=S.route.steps;let lo=0,hi=st.length-1;while(lo<hi){const m=(lo+hi+1)>>1;if(st[m].s<=s)lo=m;else hi=m-1}return st[lo]}
@@ -1166,7 +1205,7 @@ function climate(type,T,avg,rain,elevGain){
     else if(c.ac!=='OFF'){c.ac='LOW';c.acts.unshift(['TEMP WARNING LT','AC OFF','r'])}}
   if(type==='ghat_down'&&rain==='none'&&T>=24){c.ac=AC_STEP[Math.min(3,AC_STEP.indexOf(c.ac)+1)];c.intake='RECIRC';c.windows='UP';c.blower=Math.max(2,c.blower);c.acts=[]}
   if(c.ac!=='OFF')c.windows='UP';return c}
-function kmplFor(type,sp,cl,rain,full){const t=TYPES[type];let b=t.kmpl;
+function kmplFor(type,sp,cl,rain,full){const t=TYPES[type];let b=t.kmpl;const dn=num(S.density,0);if(dn>=700&&dn<=800)b*=dn/745;
   if(t.cruise){const v=Math.min(sp.cruise,sp.avg/.92);if(v>65)b*=1-.009*(v-65);if(v<45)b*=.93}
   if(type==='city_heavy'&&sp.avg<15)b*=.82;
   const acf={OFF:0,LOW:.06,MID:.10,MAX:.14}[cl.ac]||0;b*=1-(type==='ghat_down'?acf*.25:sp.avg<40?acf*1.35:acf);
@@ -1209,9 +1248,11 @@ function simulate(ci,stops,items){
       let b=z0.s1;let stopHere=null;
       if(ci2<cuts.length&&cuts[ci2].s<z0.s1-1){b=cuts[ci2].s;stopHere=cuts[ci2];ci2++}
       const km=(b-a)/1000;const smid=(a+b)/2;
-      const wx=S.wxMode==='auto'?wxAt(smid,t):null;const rain=rainLevel(wx);
+      const wx=S.wxMode==='auto'?wxAt(smid,t):null;let rain=rainLevel(wx);
+      if(S.live&&S.live.rainNow&&S.live.rainNow!=='none'&&smid>(S.live.oatS||0)-5000&&smid<(S.live.oatS||0)+15000&&(rain==='none'||S.live.rainNow==='heavy'))rain=S.live.rainNow;
       const ea=elevAtS(a),eb=elevAtS(b),dz=ea!=null&&eb!=null?eb-ea:0;
-      const T=wx?wx.T:tempModel(t,elevAtS(smid));
+      let T=wx?wx.T:tempModel(t,elevAtS(smid));
+      if(S.live&&S.live.oatBias!=null){const k=Math.max(0,1-Math.max(0,smid-(S.live.oatS||0))/50000);T=Math.round((T+S.live.oatBias*k)*10)/10}
       const type=zoneType(z0,t);const sp=speeds(type,z0.v,ci,t,rain);
       const cl=climate(type,T,sp.avg,rain,dz);const kmpl=kmplFor(type,sp,cl,rain,full);const L=litresFor(type,km,dz,kmpl);
       if(exceed==null&&sinceFill+L>limit)exceed=a+(limit-sinceFill)/L*(b-a);
@@ -1269,7 +1310,8 @@ function fuelPhase(st,s0,s1,onboard,since,pF,pR,tank){const wo=st.s<6000?0:st.s<
     H('BEFORE MOVING'),E('IDLE','30 s','m'),E('GEAR','1st'),E('PARKING BRAKE','RELEASE'),E('BRAKE LT','OUT')]}}
 function buildPlan(){
   if(!S.route||!S.route.zones||!G)return null;
-  let stops=[];const solved=solveCI(0);let ci=S.ciMode==='auto'?solved.ci:num(S.ci);
+  let stops=[];if(S.live&&S.live.filledAtS!=null){const fp=(S.route.pumps||[]).find(p=>Math.abs(p.s-S.live.filledAtS)<600);stops.push({s:S.live.filledAtS,pump:fp||{name:'FILLED',lat:pointAt(S.live.filledAtS)[0],lon:pointAt(S.live.filledAtS)[1]},done:true})}
+  const solved=solveCI(0);let ci=S.ciMode==='auto'?solved.ci:num(S.ci);
   let sim=simulate(ci,stops,false);
   for(let k=0;k<6&&sim.exceed!=null;k++){const prev=stops.length?stops[stops.length-1].s:sim.fillFrom;
     const immediate=!stops.length&&(sim.exceed-(S.live&&S.live.routeFromS||0))<8000;const st=chooseStop(sim.exceed,prev,immediate);if(!st||st.s<=prev)break;stops.push(st);sim=simulate(ci,stops,false)}
@@ -1279,7 +1321,7 @@ function buildPlan(){
   const pre={id:'pre',kind:'pre',title:'BEFORE START',sub:'ENGINE OFF',sStart:-1,sEnd:0,start:new Date(dep.getTime()-15*6e4),end:new Date(dep),items:[],chips:[]};
   const p=pre.items;const f0=stops[0];
   p.push(H('FUEL'));
-  if(f0){p.push(E('FUEL STOP',(f0.pump?f0.pump.name+' · ':'')+'KM '+(f0.s/1000).toFixed(f0.s<10000?1:0),'m'));if(stops.length>1)p.push(E('FUEL STOPS',String(stops.length),'m'));if(f0.late)p.push(E('FIRST PUMP','BEYOND SAFE RANGE','r'))}
+  if(f0&&!f0.done){p.push(E('FUEL STOP',(f0.pump?f0.pump.name+' · ':'')+'KM '+(f0.s/1000).toFixed(f0.s<10000?1:0),'m'));if(stops.length>1)p.push(E('FUEL STOPS',String(stops.length),'m'));if(f0.late)p.push(E('FIRST PUMP','BEYOND SAFE RANGE','r'))}
   else p.push(E('FUEL','SUFFICIENT'));
   p.push(H('WALK-ROUND'),E('TYRES ×4','VISUAL'));if(!f0)p.push(E('TYRE PRESSURE',`${P.pF} / ${P.pR} psi`,'m'));
   p.push(E('UNDER CAR','NO LEAKS'),E('LIGHTS · HORN','CHECK'),E('BONNET','LATCHED'),E('EXTRA LOAD','REMOVE'));
@@ -1326,14 +1368,39 @@ function nextManeuver(s){const st=S.route.steps;for(let i=0;i<st.length;i++){if(
 /* ============================== VOICE ============================== */
 let voiceObj=null;function pickVoice(){try{const v=speechSynthesis.getVoices();voiceObj=v.find(x=>/en-IN/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}catch(e){}}
 if('speechSynthesis'in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
-function speak(t,urgent){if(S.voice!=='on'||!('speechSynthesis'in window))return;t=String(t).replace(/·/g,', ').replace(/\bHWY\b/gi,'highway').replace(/\bNH\s?(\d+)/g,'N H $1').replace(/\bSH\s?(\d+)/g,'S H $1');try{if(urgent)speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-IN';if(voiceObj)u.voice=voiceObj;u.rate=1.02;speechSynthesis.speak(u)}catch(e){}}
+let AUD=null;function audio(){try{if(!AUD)AUD=new(window.AudioContext||window.webkitAudioContext)();if(AUD.state==='suspended')AUD.resume()}catch(e){}return AUD}
+document.addEventListener('click',()=>audio());
+function chime(n,f){const a=audio();if(!a)return;let t=a.currentTime+0.02;for(let i=0;i<(n||3);i++){const o=a.createOscillator(),g=a.createGain();o.type='square';o.frequency.value=f||1200;
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.22,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+0.11);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+0.13);t+=0.17}}
+function speak(t,urgent,force){if((S.voice!=='on'&&!force)||!('speechSynthesis'in window))return;t=String(t).replace(/·/g,', ').replace(/\bHWY\b/gi,'highway').replace(/\bNH\s?(\d+)/g,'N H $1').replace(/\bSH\s?(\d+)/g,'S H $1');try{if(urgent)speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-IN';if(voiceObj)u.voice=voiceObj;u.rate=1.02;speechSynthesis.speak(u)}catch(e){}}
 const sayKm=m=>{if(m>=950){const k=Math.round(m/100)/10;return String(k).replace(/\.0$/,'')+(k===1?' kilometre':' kilometres')}return Math.round(m/50)*50+' metres'};
 
 /* ============================== MAPS ============================== */
 const MAPS={plan:null,drive:null};
-function makeMap(id){if(typeof L==='undefined')return null;const m=L.map(id,{zoomControl:false,attributionControl:true});
-  const tiles=L.tileLayer(TILES[curTheme||'night'],{maxZoom:19,subdomains:'abcd',attribution:ATTR,crossOrigin:true}).addTo(m);m.setView([LAT0,LON0],10);
-  return{map:m,tiles,layers:L.layerGroup().addTo(m),car:null,follow:true}}
+function makeMap(id){if(typeof L==='undefined')return null;const el=document.getElementById(id);const m=L.map(id,{zoomControl:false,attributionControl:true});
+  const M={map:m,el,tiles:null,wx:L.layerGroup().addTo(m),layers:L.layerGroup().addTo(m),radar:null,car:null,follow:true};setTiles(M);m.setView([LAT0,LON0],10);
+  const wrap=el.parentElement;const b=wrap&&wrap.querySelector('.wxb');if(b)b.onclick=()=>{const order=['rain','temp','radar','off'];S.wxLayer=order[(order.indexOf(S.wxLayer||'rain')+1)%order.length];save();[MAPS.plan,MAPS.drive].forEach(x=>x&&drawWx(x))};
+  return M}
+function setTiles(M){const sp=tileSpec(curTheme||'night');if(M.tiles)M.tiles.remove();
+  M.tiles=L.tileLayer(sp.url,{maxZoom:19,subdomains:sp.sub,attribution:sp.attr,crossOrigin:true}).addTo(M.map);M.tiles.bringToBack();M.el.classList.toggle('dk',sp.dark)}
+function timeAtS(s){if(!PLAN)return new Date();for(const ph of PLAN.phases){if(ph.kind==='zone'&&s>=ph.sStart&&s<=ph.sEnd){return new Date(ph.start.getTime()+(ph.end-ph.start)*(s-ph.sStart)/Math.max(1,ph.sEnd-ph.sStart))}}
+  return s<=0?depDate():PLAN.eta}
+let RADAR={url:null,at:0};
+async function radarUrl(){if(RADAR.url&&Date.now()-RADAR.at<9*6e4)return RADAR.url;const j=await getJSON('https://api.rainviewer.com/public/weather-maps.json',{},10000);
+  const fr=j.radar&&j.radar.past&&j.radar.past[j.radar.past.length-1];if(!fr)throw new Error('no radar');RADAR={url:j.host+fr.path+'/256/{z}/{x}/{y}/2/1_1.png',at:Date.now(),time:fr.time};return RADAR.url}
+function setLegend(M,html){const wrap=M.el.parentElement;const lg=wrap&&wrap.querySelector('.wxleg');if(lg){lg.innerHTML=html;lg.style.display=html?'flex':'none'}const b=wrap&&wrap.querySelector('.wxb');if(b)b.textContent='WX · '+({rain:'RAIN',temp:'TEMP',radar:'RADAR',off:'OFF'}[S.wxLayer||'rain'])}
+const sw=(c,t)=>`<span><i style="background:${c}"></i>${t}</span>`;
+function drawWx(M){if(!M||typeof L==='undefined')return;M.wx.clearLayers();if(M.radar){M.radar.remove();M.radar=null}
+  const mode=S.wxLayer||'rain';if(mode==='off'){setLegend(M,'');return}
+  if(mode==='radar'){setLegend(M,'<span class="spin">◐</span> RADAR');radarUrl().then(u=>{if((S.wxLayer||'rain')!=='radar')return;if(M.radar)M.radar.remove();
+      M.radar=L.tileLayer(u,{opacity:.7,maxNativeZoom:7,maxZoom:19,attribution:'Weather data by <a href="https://www.rainviewer.com" target="_blank">RainViewer</a>',crossOrigin:true}).addTo(M.map);
+      setLegend(M,'LIVE RADAR · '+hm(new Date(RADAR.time*1000)))}).catch(()=>setLegend(M,'<span class="c-a">RADAR N/A</span>'));return}
+  const W=S.route&&S.route.wx;if(!W){setLegend(M,'<span class="c-a">FORECAST N/A</span>');return}
+  W.samples.forEach(x=>{if(!x.t0ms)return;const i=Math.round((timeAtS(x.s)-x.t0ms)/36e5);if(i<0||i>=x.T.length)return;let col=null;
+    if(mode==='rain'){const R=num(x.R[i]),P=num(x.P[i]),C=num(x.C&&x.C[i]);if(C>=95)col=css('--m');else if(R>=4||(P>=80&&R>=2))col=css('--r');else if(R>=1||(P>=60&&R>=.3))col=css('--a');else if(R>=.1||P>=40)col=css('--g')}
+    else{const T=x.T[i];if(T==null)return;col=T>=34?'#ff3b30':T>=30?'#ffb020':T>=26?'#3ef07a':T>=22?'#3fd8ff':'#5b7cff'}
+    if(col)L.circle([x.lat,x.lon],{radius:9500,stroke:false,fillColor:col,fillOpacity:.32,interactive:false}).addTo(M.wx)});
+  setLegend(M,mode==='rain'?sw(css('--g'),'LIGHT')+sw(css('--a'),'MOD')+sw(css('--r'),'HEAVY')+sw(css('--m'),'STORM'):sw('#5b7cff','<22')+sw('#3fd8ff','22')+sw('#3ef07a','26')+sw('#ffb020','30')+sw('#ff3b30','34+'))}
 function pin(lat,lon,text,bg){return L.marker([lat,lon],{icon:L.divIcon({className:'',html:`<div class="mk-pin" style="background:${bg}">${esc(text)}</div>`,iconSize:null,iconAnchor:[10,10]}),interactive:false})}
 function css(v){return getComputedStyle(document.body).getPropertyValue(v).trim()}
 function drawRoute(M,plan,currentPh){if(!M||!G)return;M.layers.clearLayers();const ll=[];for(let i=0;i<G.n;i++)ll.push([G.lat[i],G.lon[i]]);
@@ -1341,7 +1408,7 @@ function drawRoute(M,plan,currentPh){if(!M||!G)return;M.layers.clearLayers();con
   if(plan)plan.phases.forEach(ph=>{if(ph.kind==='zone'&&(ph.type==='ghat_up'||ph.type==='ghat_down')){const seg=sliceLL(ph.sStart,ph.sEnd);L.polyline(seg,{color:css('--a'),weight:6,opacity:.9}).addTo(M.layers)}});
   if(currentPh&&currentPh.kind==='zone'){L.polyline(sliceLL(currentPh.sStart,currentPh.sEnd),{color:css('--m'),weight:7,opacity:.95}).addTo(M.layers)}
   (S.route.pumps||[]).forEach(p=>L.circleMarker([p.lat,p.lon],{radius:4,color:css('--a'),weight:2,fillOpacity:.6}).addTo(M.layers));
-  if(plan)plan.phases.forEach(ph=>{if(ph.kind==='fuel')pin(ph.lat,ph.lon,'⛽ '+(ph.pump?ph.pump.name.slice(0,12):'FUEL'),css('--a')).addTo(M.layers)});
+  if(plan)plan.phases.forEach(ph=>{if(ph.kind==='fuel')L.marker([ph.lat,ph.lon],{icon:L.divIcon({className:'',html:`<div class="mk-pin" style="background:${css('--a')}">⛽ ${esc(ph.pump?ph.pump.name.slice(0,12):'FUEL')}</div>`,iconSize:null,iconAnchor:[-8,10]}),interactive:false}).addTo(M.layers)});
   S.route.pts.forEach((p,i)=>{const lab=i===0?'START':i===S.route.pts.length-1?'END':'VIA '+i;pin(p.lat,p.lon,lab,i===S.route.pts.length-1?css('--g'):css('--c')).addTo(M.layers)})}
 function sliceLL(a,b){const out=[];const pa=pointAt(a),pb=pointAt(b);out.push([pa[0],pa[1]]);for(let i=pa[2]+1;i<=pb[2];i++)out.push([G.lat[i],G.lon[i]]);out.push([pb[0],pb[1]]);return out}
 function fitRoute(M){if(!M||!G)return;let a=90,b=180,c=-90,d=-180;for(let i=0;i<G.n;i+=Math.max(1,G.n>>9)){a=Math.min(a,G.lat[i]);c=Math.max(c,G.lat[i]);b=Math.min(b,G.lon[i]);d=Math.max(d,G.lon[i])}
@@ -1379,7 +1446,7 @@ function bindField(id,cb){const el=$('#'+id);el.value=S[id]??'';el.addEventListe
 function bindToggle(id,cb){const box=$('#'+id);const paint=()=>[...box.children].forEach(b=>b.classList.toggle('on',b.dataset.v===S[id]));paint();
   box.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S[id]=b.dataset.v;save();paint();cb&&cb()})}
 const paintWx=()=>{$('#wxManual').style.display=S.wxMode==='manual'?'block':'none'};
-bindToggle('parked');bindToggle('wxMode',paintWx);bindToggle('theme',applyTheme);bindToggle('voice');paintWx();
+bindToggle('parked');bindToggle('wxMode',paintWx);bindToggle('theme',applyTheme);bindToggle('voice');bindToggle('aural');paintWx();
 $('#resetAll').onclick=()=>{if(window._cr){try{localStorage.removeItem(KEY)}catch(e){}location.reload()}else{window._cr=1;$('#resetAll').textContent='TAP AGAIN TO CONFIRM'}};
 
 function routeKeyNow(){return JSON.stringify([S.origin,S.dest,S.wps].flat().map(p=>p&&p.lat!=null?[+p.lat.toFixed(5),+p.lon.toFixed(5)]:null))}
@@ -1403,15 +1470,16 @@ $('#compute').onclick=async()=>{
     await enrichRoute(log);S.routeKey=key;S.checks={};S.live=null;save(true);b.disabled=false;b.textContent='COMPUTE PLAN ▸';show('plan');
   }catch(err){log('ROUTE','fail');st.innerHTML='<span class="c-r">ROUTE FAILED · CHECK PLACES / RETRY</span>'}
   finally{b.disabled=false;b.textContent='COMPUTE PLAN ▸'}};
-async function refreshWx(){try{const ss=S.route.wx?S.route.wx.samples.map(x=>x.s):sampleEvery(20000);const arr=await forecast(ss.map(s=>pointAt(s)));
-  S.route.wx={samples:ss.map((s,i)=>{const h=(arr[i]&&arr[i].hourly)||{};return{s,t0:(h.time||[])[0]||null,T:(h.temperature_2m||[]).map(v=>v==null?null:Math.round(v*10)/10),P:(h.precipitation_probability||[]).map(v=>v==null?null:Math.round(v)),R:(h.precipitation||[]).map(v=>v==null?null:Math.round(v*10)/10)}}),at:Date.now()};save()}catch(e){}}
+async function refreshWx(){try{await fetchWx();save()}catch(e){}}
 
 /* ============================== PLAN VIEW ============================== */
 let PLAN=null;
-function ecamHTML(ph,tick=true){return'<div class="ecam">'+ph.items.map((it,i)=>{const key=ph.id+':'+i;const done=tick&&S.checks[key];
+function ecamHTML(ph,tick=true,mark=false){let curDone=false;return'<div class="ecam">'+ph.items.map((it,i)=>{const key=ph.id+':'+i;const done=tick&&S.checks[key];
+  let cur='';if(mark&&it.t==='e'&&!done&&!curDone){cur=' cur';curDone=true}
   if(it.t==='h')return`<div class="sec">${esc(it.text)}</div>`;if(it.t==='m')return`<div class="memo">${esc(it.text)}</div>`;
-  const cls=it.cls==='a'||it.cls==='r'?' '+it.cls:'';return`<div class="ec${cls}${done?' done':''}" ${tick?`data-ck="${key}"`:''}><span>${esc(it.k)}</span><span class="d"></span><span class="v ${it.cls==='m'?'m':''}">${esc(it.v)}</span></div>`}).join('')+'</div>'}
-document.addEventListener('click',e=>{const el=e.target.closest('[data-ck]');if(!el)return;const k=el.dataset.ck;if(S.checks[k])delete S.checks[k];else S.checks[k]=1;save();el.classList.toggle('done')});
+  const cls=(it.cls==='a'||it.cls==='r'?' '+it.cls:'')+cur;return`<div class="ec${cls}${done?' done':''}" ${tick?`data-ck="${key}"`:''}><span>${esc(it.k)}</span><span class="d"></span><span class="v ${it.cls==='m'?'m':''}">${esc(it.v)}</span></div>`}).join('')+'</div>'}
+document.addEventListener('click',e=>{const el=e.target.closest('[data-ck]');if(!el)return;const k=el.dataset.ck;if(S.checks[k])delete S.checks[k];else S.checks[k]=1;save();el.classList.toggle('done');
+  if(S.tab==='drive'&&PLAN){const y=window.scrollY;paintLive(true);window.scrollTo(0,y)}});
 function noPlan(el){el.innerHTML='<div class="empty">NO ROUTE<br><br>SETUP → COMPUTE PLAN</div>'}
 function planValid(){return S.route&&S.route.zones&&S.routeKey===routeKeyNow()}
 function renderPlan(){const out=$('#planOut');if(!planValid()){PLAN=null;noPlan(out);return}
@@ -1419,17 +1487,18 @@ function renderPlan(){const out=$('#planOut');if(!planValid()){PLAN=null;noPlan(
   const wxNote=S.wxMode==='auto'?(S.route.wx?'FORECAST '+hm(new Date(S.route.wx.at)):'FORECAST N/A · MANUAL MODEL'):'MANUAL WEATHER';
   out.innerHTML=`
   <h2>${esc(String(S.route.pts[0].label||'').toUpperCase())} → ${esc(String(S.route.pts[S.route.pts.length-1].label||'').toUpperCase())}</h2>
-  <div class="map" id="pMap"></div><div style="height:10px"></div>
+  <div class="mapbtns"><div class="map" id="pMap"></div><button class="mb wxb" style="top:8px">WX</button><div class="wxleg"></div></div><div style="height:10px"></div>
   <div class="stats">
     <div class="stat"><div class="k">DISTANCE</div><div class="v c-g">${P.km.toFixed(0)} km</div><div class="s c-g">${P.zoneCount} ZONES</div></div>
     <div class="stat"><div class="k">ETA</div><div class="v ${late!=null&&late>2?'c-a':'c-g'}">${hm(P.eta)}</div><div class="s ${late!=null&&late>2?'c-a':'c-g'}">${P.arr?(late>2?'LATE '+fmtDur(late):'+'+fmtDur(-late)+' SPARE'):'DRIVE '+fmtDur(P.driveMin)}</div></div>
-    <div class="stat"><div class="k">FUEL</div><div class="v ${P.reserveHit?'c-r':'c-g'}">${P.fuelTotal.toFixed(1)} L</div><div class="s ${f0?'c-m':'c-g'}">${f0?'FILL @ KM '+(f0.s/1000).toFixed(f0.s<10000?1:0):'NO STOP NEEDED'}</div></div>
-    <div class="stat"><div class="k">MILEAGE</div><div class="v c-g">${P.avgKmpl.toFixed(1)}</div><div class="s c-g">km/L</div></div>
+    <div class="stat"><div class="k">FUEL</div><div class="v ${P.reserveHit?'c-r':'c-g'}">${P.fuelTotal.toFixed(1)} L</div><div class="s ${f0?'c-m':'c-g'}">${f0?'FILL @ KM '+(f0.s/1000).toFixed(f0.s<10000?1:0)+(f0.pump&&!f0.done?' · '+esc(f0.pump.name.slice(0,10)):''):'NO STOP NEEDED'}</div></div>
+    <div class="stat"><div class="k">PLANNED km/L</div><div class="v c-g">${P.avgKmpl.toFixed(1)}</div><div class="s c-g">km/L</div></div>
   </div>
-  <div class="status c-g">${wxNote}${S.route.pumps?' · '+S.route.pumps.length+' PUMPS ON ROUTE':''}${S.route.elev?'':' · <span class="c-a">TERRAIN N/A</span>'}</div>
-  <h2>SPEED · MILEAGE</h2>
+  <div class="status c-g">${wxNote}${S.route.pumps&&S.route.pumps.length?' · '+S.route.pumps.length+' PUMPS ON ROUTE':' · <span class="c-a">PUMPS N/A</span>'}${S.route.elev?'':' · <span class="c-a">TERRAIN N/A</span>'}</div>
+  <h2>COST INDEX</h2>
   <div class="card"><div class="toggle" id="ciMode"><button data-v="auto" class="${S.ciMode==='auto'?'on':''}">AUTO</button><button data-v="manual" class="${S.ciMode==='manual'?'on':''}">MANUAL</button></div>
     <div style="height:12px"></div><div class="slider"><span class="c-g">ECO</span><input type="range" id="ciR" min="0" max="100" value="${P.ci}" ${S.ciMode==='auto'?'disabled':''}><span class="c-a">FAST</span></div>
+    <div class="status c-m">CI ${P.ci} · ${['expressway','highway','state'].map(k=>{const t=TYPES[k];return (k==='expressway'?'EXPWY ':k==='highway'?'NH ':'SH ')+Math.round(t.eco+(t.cap-t.eco)*P.ci/100)}).join(' · ')} km/h</div>
     ${P.solved.late!=null&&P.solved.late>2&&S.ciMode==='auto'?`<div class="status c-a">ARRIVAL NOT POSSIBLE · LEAVE ${fmtDur(P.solved.late)} EARLIER</div>`:''}</div>
   ${S.route.pumps&&S.route.pumps.length?`<h2>PUMPS NEAR FUEL STOP</h2><div class="card pumps">${pumpsNear(f0?f0.s:0).map(p=>`<div><span>${esc(p.name)}</span><span class="${f0&&p.s===f0.s?'c-m':''}">KM ${(p.s/1000).toFixed(1)}</span></div>`).join('')}</div>`:''}
   <h2>TIMELINE</h2>
@@ -1440,22 +1509,49 @@ function renderPlan(){const out=$('#planOut');if(!planValid()){PLAN=null;noPlan(
   out.querySelectorAll('.ph-h').forEach(h=>h.onclick=()=>h.parentElement.classList.toggle('open'));
   $('#ciMode').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.ciMode=b.dataset.v;if(S.ciMode==='manual')S.ci=PLAN.ci;save();renderPlan()};
   const r=$('#ciR');r.oninput=()=>{S.ci=+r.value;save()};r.onchange=()=>renderPlan();$('#goLive').onclick=()=>show('drive');
-  if(typeof L!=='undefined'){if(MAPS.plan){MAPS.plan.map.remove();MAPS.plan=null}MAPS.plan=makeMap('pMap');if(MAPS.plan){drawRoute(MAPS.plan,PLAN,null);setTimeout(()=>{MAPS.plan.map.invalidateSize();fitRoute(MAPS.plan)},60)}}}
+  if(typeof L!=='undefined'){if(MAPS.plan){MAPS.plan.map.remove();MAPS.plan=null}MAPS.plan=makeMap('pMap');if(MAPS.plan){drawRoute(MAPS.plan,PLAN,null);drawWx(MAPS.plan);setTimeout(()=>{MAPS.plan.map.invalidateSize();fitRoute(MAPS.plan)},60)}}}
 function pumpsNear(s){const P=S.route.pumps||[];return P.filter(p=>p.s>=s-15000&&p.s<=s+10000).slice(0,8)}
 
 /* ============================== LIVE ENGINE ============================== */
 let watchId=null,wakeLock=null;
-const LV={fix:null,s:null,d:null,idx:null,speed:0,heading:0,off:0,lastReroute:0,spoken:{},phaseId:null,prepSaid:{},gpsOK:false,lastFixAt:0,movingMs:0,lastT:0,stopLatch:null};
+const LV={fix:null,s:null,d:null,idx:null,speed:0,heading:0,off:0,lastReroute:0,spoken:{},phaseId:null,prepSaid:{},gpsOK:false,lastFixAt:0,movingMs:0,lastT:0,stopLatch:null,moveCnt:0,snapD:null,stillSince:null,hold:null,overSince:null,overWarn:0,lastS:null,delaySaid:0};
 function liveFuelLeft(){if(!PLAN||!S.live)return null;const s=LV.s??0;let used=0;const from=S.live.fuelFromS??0;
   PLAN.phases.forEach(ph=>{if(ph.kind!=='zone')return;const a=Math.max(ph.sStart,from),b=Math.min(ph.sEnd,s);if(b>a)used+=ph.fuel*(b-a)/(ph.sEnd-ph.sStart)});
   return Math.max(0,num(S.live.fuelAtFromS,0)-used)}
-function startDrive(){if(!PLAN)PLAN=buildPlan();if(!PLAN)return;
-  S.live={started:Date.now(),fuelAtFromS:num(S.bars)*num(S.lpb,2.5),fuelFromS:0,mode:'gps',offset:0};save(true);
-  speak('Drive deck active. '+(PLAN.stops[0]?'Fuel stop at kilometre '+Math.round(PLAN.stops[0].s/1000)+'.':''),true);startGPS();requestWake();renderDrive(true)}
-function stopDrive(){if(watchId!=null)navigator.geolocation.clearWatch(watchId);watchId=null;S.live=null;save(true);releaseWake();renderDrive(true)}
+function startDrive(auto){if(!PLAN)PLAN=buildPlan();if(!PLAN)return;
+  S.live={started:Date.now(),routeStart:Date.now(),fuelAtFromS:num(S.bars)*num(S.lpb,2.5),fuelFromS:0,mode:'gps',offset:0,oatAt:0,wpSaid:{},odo:0,fills:[],mpg:[],avgResetS:0,lastReadOdo:0};
+  PLAN=buildPlan();save(true);speak(briefing(auto),true);startGPS();requestWake();LV.phaseId=null;renderDrive(true);setTimeout(liveWx,1500)}
+const sayTime=d=>{const h=d.getHours(),m=d.getMinutes();return (h%12||12)+(m?' '+(m<10?'o '+m:m):' o clock')+(h<12?' A M':' P M')};
+function destName(){const p=S.route.pts[S.route.pts.length-1];return String(p.label||'destination').split(',')[0]}
+function briefing(auto){const P=PLAN;const z=P.phases.find(x=>x.kind==='zone');const parts=[];
+  parts.push(auto?'Movement detected. Drive deck active.':'Drive deck active.');
+  parts.push(`Route to ${destName()}. ${Math.round(P.km)} kilometres. Arrival around ${sayTime(P.eta)}.`);
+  const f=P.stops.find(x=>!x.done);if(f)parts.push(`Fuel stop at kilometre ${Math.round(f.s/1000)}${f.pump?', '+f.pump.name:''}.`);
+  const rz=P.phases.find(x=>x.kind==='zone'&&x.chips.some(c=>c.t==='RAIN'));parts.push(rz?`Rain expected near kilometre ${Math.round(rz.sStart/1000)}.`:'No rain expected on the route.');
+  const climb=P.phases.find(x=>x.kind==='zone'&&x.type==='ghat_up');if(climb)parts.push(`Ghat climb at kilometre ${Math.round(climb.sStart/1000)}.`);
+  if(z)parts.push('First zone. '+zoneSpeech(z)+'.');return parts.join(' ')}
+let watchPassive=false;
+function ensureWatch(){if(watchId!=null||!('geolocation'in navigator)||!planValid())return;watchPassive=true;
+  watchId=navigator.geolocation.watchPosition(onFix,err=>{LV.gpsOK=false;gpsDot()},{enableHighAccuracy:true,maximumAge:1000,timeout:20000})}
+async function liveWx(force){if(!S.live||!LV.fix||!navigator.onLine||!PLAN)return;if(!force&&Date.now()-num(S.live.oatAt)<10*6e4)return;S.live.oatAt=Date.now();
+  try{const w=await currentWx(LV.fix.lat,LV.fix.lon);if(w.T==null)return;const now=new Date();const sNow=LV.s||0;
+    const base=(()=>{const x=S.wxMode==='auto'?wxAt(sNow,now):null;return x?x.T:tempModel(now,elevAtS(sNow))})();
+    const i=currentPhaseIdx();const before=PLAN.phases[i];const old=before&&before.cl?JSON.stringify([before.cl.ac,before.cl.intake,before.cl.blower,before.cl.mode]):null;
+    S.live.oat={T:w.T,code:w.code,at:Date.now()};S.live.oatBias=Math.max(-8,Math.min(8,w.T-base));S.live.oatS=sNow;S.live.rainNow=rainFromCode(w.code);save();
+    PLAN=buildPlan();const j=currentPhaseIdx();const ph=PLAN.phases[j];
+    if(ph&&ph.cl&&old&&JSON.stringify([ph.cl.ac,ph.cl.intake,ph.cl.blower,ph.cl.mode])!==old){try{navigator.vibrate&&navigator.vibrate([100,60,100])}catch(e){}
+      speak(`Outside air now ${Math.round(w.T)} degrees, ${wxText(w.code)}. Climate update. A C ${ph.cl.ac==='OFF'?'off':ph.cl.ac.toLowerCase()}. ${ph.cl.intake==='RECIRC'?'Recirculation':'Fresh air'}. Fan ${ph.cl.blower}.`)}
+    LV.phaseId=ph?ph.id:null;renderDrive(true)}catch(e){}}
+async function approachCall(kind,idx,mins,distM){const pt=kind==='dest'?S.route.pts[S.route.pts.length-1]:S.route.pts[idx+1];const name=String(pt.label||'destination').split(',')[0];
+  let w=null;try{if(navigator.onLine)w=await currentWx(pt.lat,pt.lon)}catch(e){}
+  const wtxt=w&&w.T!=null?`At ${name}: ${Math.round(w.T)} degrees, ${wxText(w.code)}${w.P1>=50&&rainFromCode(w.code)==='none'?', rain likely within the hour':''}.`:'';
+  if(kind==='dest'){S.live.appr={txt:`${Math.round(mins)} MIN · ${(distM/1000).toFixed(0)} km`+(w&&w.T!=null?` · ${Math.round(w.T)}°C ${wxText(w.code).toUpperCase()}`:'')};save()}
+  speak(`${kind==='dest'?'Approaching destination':'Approaching stop'}, ${name}. About ${Math.round(mins)} minutes, ${sayKm(distM)} to go. ${wtxt} ${kind==='dest'?'Approach checklist: A C off two kilometres before arrival. Note your average fuel consumption.':'A C off one kilometre before the stop.'}`);
+  renderDrive(true)}
+function stopDrive(){if(watchId!=null)navigator.geolocation.clearWatch(watchId);watchId=null;S.live=null;LV.phaseId=null;save(true);releaseWake();renderDrive(true)}
 function startGPS(){if(!('geolocation'in navigator)){S.live.mode='time';save();return}
   if(watchId!=null)navigator.geolocation.clearWatch(watchId);
-  watchId=navigator.geolocation.watchPosition(onFix,err=>{LV.gpsOK=false;gpsDot();if(err.code===1&&S.live){S.live.mode='time';save();renderDrive(true)}},{enableHighAccuracy:true,maximumAge:1000,timeout:20000})}
+  watchPassive=false;watchId=navigator.geolocation.watchPosition(onFix,err=>{LV.gpsOK=false;gpsDot();if(err.code===1&&S.live){S.live.mode='time';save();renderDrive(true)}},{enableHighAccuracy:true,maximumAge:1000,timeout:20000})}
 function gpsDot(){const ok=LV.gpsOK&&Date.now()-LV.lastFixAt<15000;$('#hGps').innerHTML=`<span class="dot ${ok?'g':watchId!=null?'a':''}"></span>GPS`}
 function onFix(p){const c=p.coords;const now=p.timestamp||Date.now();LV.gpsOK=true;LV.lastFixAt=Date.now();gpsDot();
   let spd=c.speed!=null&&c.speed>=0?c.speed*3.6:null;
@@ -1463,10 +1559,15 @@ function onFix(p){const c=p.coords;const now=p.timestamp||Date.now();LV.gpsOK=tr
     if(LV.speed>5)LV.movingMs+=Math.min(5000,now-LV.fix.t)}
   LV.speed=spd==null?LV.speed:(LV.speed*.4+spd*.6);if(LV.speed<1.5)LV.speed=0;
   LV.fix={lat:c.latitude,lon:c.longitude,acc:c.accuracy,t:now};
+  if(LV.speed<3){if(LV.stillSince==null)LV.stillSince=now}else{LV.stillSince=null;if(LV.hold){const hm2=(now-LV.hold.since)/6e4;LV.hold=null;if(hm2>=2)speak('Hold ended after '+Math.round(hm2)+' minutes.');lastLiveRenderIdx=-1}}
   if(G){const sn=snap(c.latitude,c.longitude,LV.idx);if(sn){
     const tol=Math.max(70,(c.accuracy||20)*1.5);
-    if(sn.d>tol){LV.off++}else{LV.off=0;LV.s=sn.s;LV.idx=sn.i;LV.d=sn.d}
-    if(LV.off>=5&&LV.speed>8&&Date.now()-LV.lastReroute>45000)reroute()}}
+    LV.snapD=sn.d;
+    if(sn.d>tol){LV.off++}else{LV.off=0;LV.s=sn.s;LV.idx=sn.i;LV.d=sn.d;
+      if(S.live){if(LV.lastS!=null){const ds=LV.s-LV.lastS;if(ds>0&&ds<3000)S.live.odo=(S.live.odo||0)+ds}LV.lastS=LV.s}}
+    if(S.live&&LV.off>=5&&LV.speed>8&&Date.now()-LV.lastReroute>45000)reroute()}}
+  if(!S.live&&PLAN){LV.moveCnt=LV.speed>10?LV.moveCnt+1:0;if(LV.moveCnt>=3&&LV.snapD!=null&&LV.snapD<150){LV.moveCnt=0;startDrive(true);return}
+    if(S.tab==='drive')paintLive(false);return}
   if(S.live&&S.live.mode!=='time')liveTick()}
 async function reroute(){LV.lastReroute=Date.now();if(!navigator.onLine){return}
   try{const cur={lat:LV.fix.lat,lon:LV.fix.lon,label:'HERE'};const sNow=LV.s||0;
@@ -1475,12 +1576,12 @@ async function reroute(){LV.lastReroute=Date.now();if(!navigator.onLine){return}
     const fuelNow=liveFuelLeft();const keep={wx:S.route.wx,pumps:null};
     const origPts=S.route.pts;processRoute(r,pts);S.route.pts=[cur,...rest];
     try{S.route.elev=null;const ss=sampleEvery(1000);const el=await elevations(ss.map(s=>pointAt(s)));S.route.elev={step:1000,e:el.map(x=>Math.round(num(x)))}}catch(e){}
-    try{const els=await pumpsAlong();const list=[];els.forEach(x=>{const la=x.lat??(x.center&&x.center.lat),lo=x.lon??(x.center&&x.center.lon);if(la==null)return;const t=x.tags||{};const sp=snap(la,lo,null);if(sp&&sp.d<350)list.push({lat:la,lon:lo,s:Math.round(sp.s),name:String(t.brand||t.name||'FUEL').toUpperCase().slice(0,26)})});list.sort((a,b)=>a.s-b.s);S.route.pumps=list}catch(e){S.route.pumps=[]}
-    S.route.wx=null;try{const ss=sampleEvery(Math.max(15000,G.total/30));const arr=await forecast(ss.map(s=>pointAt(s)));S.route.wx={samples:ss.map((s,i)=>{const h=(arr[i]&&arr[i].hourly)||{};return{s,t0:(h.time||[])[0]||null,T:(h.temperature_2m||[]).map(v=>v==null?null:Math.round(v*10)/10),P:(h.precipitation_probability||[]).map(v=>v==null?null:Math.round(v)),R:(h.precipitation||[]).map(v=>v==null?null:Math.round(v*10)/10)}}),at:Date.now()}}catch(e){}
+    try{S.route.pumps=processPumps(await pumpsAlong())}catch(e){S.route.pumps=[]}
+    S.live.routeStart=Date.now();try{await fetchWx()}catch(e){S.route.wx=null}
     S.route.zones=buildZones();
     // keep waypoint inputs consistent: routeKey stays tied to original inputs
-    S.live.routeStart=Date.now();S.live.rerouted=true;S.live.routeFromS=0;S.live.fuelAtFromS=fuelNow??S.live.fuelAtFromS;S.live.fuelFromS=0;S.live.fuelStartL=fuelNow;
-    LV.s=0;LV.idx=0;LV.off=0;LV.spoken={};LV.prepSaid={};PLAN=buildPlan();save(true);speak('Route recalculated.',true);renderDrive(true)}catch(e){}}
+    S.live.routeStart=Date.now();S.live.rerouted=true;S.live.routeFromS=0;S.live.fuelAtFromS=fuelNow??S.live.fuelAtFromS;S.live.fuelFromS=0;S.live.fuelStartL=fuelNow;S.live.filledAtS=null;S.live.oatS=0;
+    LV.s=0;LV.idx=0;LV.off=0;LV.lastS=null;S.live.avgResetS=0;LV.spoken={};LV.prepSaid={};PLAN=buildPlan();save(true);speak('Route recalculated.',true);renderDrive(true)}catch(e){}}
 function phaseAtS(s){if(!PLAN)return 0;const ph=PLAN.phases;
   if(s>=G.total-80)return ph.length-1;
   // stop latch
@@ -1496,7 +1597,17 @@ function currentPhaseIdx(){if(!PLAN)return 0;
 function zoneSpeech(ph){if(ph.kind!=='zone')return ph.title.toLowerCase();const cl=ph.cl;const parts=[TYPES[ph.type].label.replace('·','').toLowerCase()];
   parts.push('A C '+(cl.ac==='OFF'?'off':cl.ac.toLowerCase()));parts.push(cl.intake==='RECIRC'?'recirculation':'fresh air');parts.push('fan '+cl.blower);
   if(ph.band)parts.push((TYPES[ph.type].cruise?'cruise ':'target ')+ph.band[1]);else parts.push('max '+ph.cap);if(cl.windows!=='UP')parts.push('windows '+cl.windows.toLowerCase());return parts.join('. ')}
+function nowRef(){return Math.max(Date.now(),LV.fix?LV.fix.t:0)}
+function speedWatch(ph){if(!ph||ph.kind!=='zone'||S.aural!=='on'||S.live.mode==='time')return;const lim=(ph.band?ph.band[1]:ph.cap)+5;const v=LV.speed;const now=nowRef();
+  if(v>lim){if(LV.overSince==null)LV.overSince=now;if(now-LV.overSince>=4000&&now-LV.overWarn>((LV.overN||0)<2?15000:45000)){LV.overWarn=now;LV.overN=(LV.overN||0)+1;chime(3,1250);speak('Overspeed. '+(ph.band?'Target '+ph.band[1]:'Limit '+ph.cap),true,true)}}
+  else if(v<lim-3){LV.overSince=null;LV.overN=0}}
+function holdWatch(ph){if(!LV.stillSince||LV.hold||!ph)return;if(ph.kind!=='zone')return;if(nowRef()-LV.stillSince<90000)return;
+  LV.hold={since:LV.stillSince};chime(1,700);speak('Holding. Engine off if waiting more than one more minute.');lastLiveRenderIdx=-1;paintLive(true)}
+function delayMin(){if(!PLAN||!S.live||LV.s==null)return 0;const eta=Date.now()+remainingMin(LV.s)*paceFactor()*6e4;return (eta-PLAN.eta.getTime())/6e4}
+function delayWatch(){const d=delayMin();const step=d>=10?Math.floor(d/10)*10:0;if(step>LV.delaySaid&&LV.movingMs>120000){LV.delaySaid=step;speak('Running '+step+' minutes behind schedule.')}else if(d<5&&LV.delaySaid){LV.delaySaid=0}}
+function fmtDelay(d){const a=Math.abs(Math.round(d));if(a<2)return'<small class="c-g">ON TIME</small>';const t=Math.floor(a/60)+':'+pad2(a%60);return d>0?`<small class="c-a">+${t}</small>`:`<small class="c-g">−${t}</small>`}
 function liveTick(){if(!PLAN||!S.live)return;const i=currentPhaseIdx();const ph=PLAN.phases[i];
+  speedWatch(ph);holdWatch(ph);delayWatch();
   if(ph&&ph.id!==LV.phaseId){const firstTime=LV.phaseId==null;LV.phaseId=ph.id;if(!firstTime){try{navigator.vibrate&&navigator.vibrate([150,80,150])}catch(e){}
       if(ph.kind==='zone')speak('New zone. '+zoneSpeech(ph));else if(ph.kind==='fuel')speak('Fuel stop. '+(ph.pump?ph.pump.name:'')+'. Engine off. Fill full.');else if(ph.kind==='arr')speak('Arrived. A C off. Note your average fuel consumption.');else if(ph.kind==='stop')speak(ph.title.toLowerCase()+'. Engine off.')}
     renderDrive(true);return}
@@ -1508,6 +1619,10 @@ function liveTick(){if(!PLAN||!S.live)return;const i=currentPhaseIdx();const ph=
       if(nx.kind==='fuel'&&dist<1500&&!LV.prepSaid[nx.id]){LV.prepSaid[nx.id]=1;speak('Fuel stop in '+sayKm(dist)+'. '+(nx.pump?nx.pump.name:''))}
       if(nx.kind==='zone'&&nx.type==='ghat_down'&&dist<1000&&!LV.prepSaid[nx.id+'gd']){LV.prepSaid[nx.id+'gd']=1;speak('Descent in '+sayKm(dist)+'. Third gear. Engine braking.')}
     }
+    if(S.live.started&&LV.movingMs>60000){const rm=remainingMin(LV.s)*paceFactor();const dl=G.total-LV.s;
+      if(rm<=15&&dl>1500&&!S.live.apprSaid){S.live.apprSaid=true;save();approachCall('dest',0,rm,dl)}
+      S.route.pts.slice(1,-1).forEach((p,k)=>{if(!num(p.dwell))return;const ds=S.route.legEnd[k]-LV.s;if(ds<=0)return;const ph=PLAN.phases.find(x=>x.kind==='stop'&&Math.abs(x.s-S.route.legEnd[k])<50);
+        const mins=ph?(ph.start-timeAtS(LV.s))/6e4*paceFactor():ds/600;S.live.wpSaid=S.live.wpSaid||{};if(mins<=10&&ds>800&&!S.live.wpSaid[k]){S.live.wpSaid[k]=1;save();approachCall('wp',k,mins,ds)}})}
     const nm=nextManeuver(LV.s);if(nm){const d=nm.st.s-LV.s;const sp=LV.speed;const th=sp>60?[1500,500,150]:sp>30?[600,250,80]:[300,120,40];
       const sp0=LV.spoken[nm.i]||0;let lvl=-1;th.forEach((t,k)=>{if(d<=t&&sp0<=k)lvl=k});
       if(lvl>=0&&(lvl>=sp0)){LV.spoken[nm.i]=lvl+1;const txt=instr(nm.st);speak(lvl===2?txt:'In '+sayKm(d)+', '+txt,lvl===2)}}}
@@ -1518,10 +1633,10 @@ function requestWake(){if(!('wakeLock'in navigator))return;navigator.wakeLock.re
 function releaseWake(){try{wakeLock&&wakeLock.release()}catch(e){}wakeLock=null}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&S.live){requestWake();if(S.live.mode!=='time'&&watchId==null)startGPS()}});
 function renderDrive(full){const top=$('#dTop'),out=$('#liveOut');
-  if(!planValid()){PLAN=null;noPlan(out);top.innerHTML='';$('#dMap').style.display='none';$('.mapbtns').style.display='none';return}
-  $('.mapbtns').style.display='block';$('#dMap').style.display='block';
+  if(!planValid()){PLAN=null;noPlan(out);top.innerHTML='';$('#dWrap').style.display='none';return}
+  $('#dWrap').style.display='block';$('#dMap').style.display='block';ensureWatch();
   if(!PLAN)PLAN=buildPlan();
-  if(!MAPS.drive&&typeof L!=='undefined'){MAPS.drive=makeMap('dMap');if(MAPS.drive){MAPS.drive.map.on('dragstart',()=>{MAPS.drive.follow=false;paintFollow()});drawRoute(MAPS.drive,PLAN,null);setTimeout(()=>{MAPS.drive.map.invalidateSize();fitRoute(MAPS.drive)},60)}}
+  if(!MAPS.drive&&typeof L!=='undefined'){MAPS.drive=makeMap('dMap');if(MAPS.drive){MAPS.drive.map.on('dragstart',()=>{MAPS.drive.follow=false;paintFollow()});drawRoute(MAPS.drive,PLAN,null);drawWx(MAPS.drive);setTimeout(()=>{MAPS.drive.map.invalidateSize();fitRoute(MAPS.drive)},60)}}
   else if(MAPS.drive)setTimeout(()=>MAPS.drive.map.invalidateSize(),60);
   if(full&&MAPS.drive){const i=currentPhaseIdx();drawRoute(MAPS.drive,PLAN,PLAN.phases[i]);if(MAPS.drive.car){MAPS.drive.car.remove();MAPS.drive.car=null}lastPaintIdx=i}
   paintLive(full)}
@@ -1539,22 +1654,33 @@ function paintLive(full){const top=$('#dTop'),out=$('#liveOut');if(!PLAN)return;
   if(i!==lastPaintIdx&&MAPS.drive){drawRoute(MAPS.drive,PLAN,ph);lastPaintIdx=i;if(MAPS.drive.car){MAPS.drive.car.remove();MAPS.drive.car=null;if(LV.fix&&live&&!timeMode)MAPS.drive.car=L.marker([LV.fix.lat,LV.fix.lon],{icon:carIcon(LV.heading),interactive:false,zIndexOffset:1000}).addTo(MAPS.drive.map)}}
   // TOP: nav banner + speed + strip
   let topH='';
-  if(!live){topH=`<div class="banner g">READY · ${PLAN.km.toFixed(0)} km · ETA ${hm(PLAN.eta)}</div>`}
+  const nowBox=()=>{const pend=ph.items.map((it,k)=>({it,k})).filter(x=>x.it.t==='e'&&!S.checks[ph.id+':'+x.k]).slice(0,3);
+    return pend.length?`<div class="now"><div class="live-k c-c">NOW · ${esc(ph.title)}</div>${pend.map(x=>`<div class="ec${x.it.cls==='a'||x.it.cls==='r'?' '+x.it.cls:''}" data-ck="${ph.id}:${x.k}"><span>${esc(x.it.k)}</span><span class="d"></span><span class="v ${x.it.cls==='m'?'m':''}">${esc(x.it.v)}</span></div>`).join('')}</div>`
+      :`<div class="now" style="border-color:var(--g)"><div class="live-k c-g">✓ ${esc(ph.title)} · COMPLETE</div></div>`};
+  if(!live){let where='';if(LV.fix&&LV.snapD!=null){where=LV.snapD<150?` · ON ROUTE · KM ${((LV.s||0)/1000).toFixed(1)}`:` · ${fmtKm(LV.snapD)} FROM ROUTE`}
+    topH=`<div class="banner g">READY · ${PLAN.km.toFixed(0)} km · ETA ${hm(PLAN.eta)}${where}</div><div class="banner c-c" style="border:1px dashed var(--c)">AUTO START WHEN MOVING ON ROUTE</div>`+nowBox()}
   else{
+    if(S.live.appr)topH+=`<div class="banner g">APPROACH · ${esc(S.live.appr.txt)}</div>`;
     if(timeMode)topH+=`<div class="banner a">NO GPS · TIME MODE</div>`;
     else if(!LV.gpsOK||Date.now()-LV.lastFixAt>15000)topH+=`<div class="banner a"><span class="spin">◐</span> ACQUIRING GPS</div>`;
     else if(LV.off>=3)topH+=`<div class="banner a">OFF ROUTE${navigator.onLine?' · RECALCULATING':' · NO NETWORK'}</div>`;
     if(!timeMode&&s!=null){const nm=nextManeuver(s);if(nm){const d=nm.st.s-s;const after=nextManeuver(nm.st.s+1);
       topH+=`<div class="navb"><div class="arrow">${arrowSVG(nm.st)}</div><div><div class="dist">${fmtKm(d)}</div><div class="ins">${esc(instr(nm.st))}</div>${after&&after.st.s-nm.st.s<600?`<div class="then">THEN ${esc(instr(after.st))}</div>`:''}</div></div>`}}
-    const band=ph&&ph.band;const v=Math.round(LV.speed||0);let cls='';if(!timeMode&&ph&&ph.kind==='zone'){const hi=band?band[1]:ph.cap;if(v>Math.max(hi,ph.cap)+10)cls='r';else if(v>hi+(band?4:0))cls='a'}
+    const band=ph&&ph.band;const v=Math.round(LV.speed||0);let cls='';if(!timeMode&&ph&&ph.kind==='zone'){const hi=band?band[1]:ph.cap;if(v>(band?hi+15:ph.cap+10))cls='r';else if(v>hi+(band?4:0))cls='a'}
     const left=s!=null?Math.max(0,G.total-s):null;
     const pace=paceFactor();const remMin=remainingMin(s)*pace;const eta=new Date(Date.now()+remMin*6e4);
     const fuel=liveFuelLeft();const np=s!=null&&S.route.pumps?S.route.pumps.find(p=>p.s>s+50):null;
+    const oat=S.live.oat&&Date.now()-S.live.oat.at<40*6e4?S.live.oat:null;
+    if(LV.hold){const el=Math.max(0,(nowRef()-LV.hold.since)/1000);const T=oat?oat.T:(ph&&ph.cl?num(ph.sub.match(/(\d+)°C/)?.[1],28):28);
+      const hi=[E('ENGINE','OFF IF > 1 MORE MIN'),E('PARKING BRAKE','SET'),E('GEAR','NEUTRAL'),...(T>=30?[E('AC','LOW · RECIRC'),E('BLOWER','1')]:[E('AC','OFF'),E('WINDOWS','DOWN')]),E('MOVING AGAIN','IDLE 10 s · 1st')];
+      topH+=`<div class="banner a">HOLD · ${Math.floor(el/60)}:${pad2(Math.floor(el%60))} · DELAY ${fmtDelay(delayMin()).replace(/<[^>]+>/g,'')}</div>`+ecamHTML({id:'hold',items:hi})}
+    const odoKm=(S.live.odo||0)/1000;if(!timeMode&&LV.speed<3&&(odoKm-(S.live.lastReadOdo||0)/1000>=25||(ph&&(ph.kind==='stop'||ph.kind==='fuel'))))topH+=`<button class="btn" id="askAvg" style="margin-bottom:8px">ENTER CAR AVG km/L ▸</button>`;
+    topH+=nowBox();
     topH+=`<div class="spd"><div class="box"><div class="u">SPEED</div><div class="big ${cls}">${timeMode?'--':v}</div><div class="u">km/h</div></div>
       <div class="box"><div class="u">${ph&&ph.kind==='zone'?(TYPES[ph.type].cruise?'CRUISE':band?'TARGET':'MAX · AVG ~'+Math.round(ph.sp.avg)):'PHASE'}</div><div class="tgt">${band?band[0]+'–'+band[1]:ph&&ph.cap?'≤ '+ph.cap:ph&&ph.kind!=='zone'?'STOP':'—'}</div><div class="u c-c">${ph&&ph.cl?'AC '+ph.cl.ac+' · '+ph.cl.intake+' · FAN '+ph.cl.blower:''}</div></div></div>
-      <div class="strip"><div>LEFT<b>${left!=null?fmtKm(left):'—'}</b></div><div>ETA<b class="${PLAN.arr&&eta>PLAN.arr?'c-a':''}">${s!=null?hm(eta):hm(PLAN.eta)}</b></div><div>FUEL<b class="${fuel!=null&&fuel<num(S.reserve,2)?'c-r':''}">${fuel!=null?fuel.toFixed(1)+' L':'—'}</b></div><div>PUMP<b>${np?fmtKm(np.s-s):'—'}</b></div></div>`}
+      <div class="strip"><div>LEFT<b>${left!=null?fmtKm(left):'—'}</b></div><div>ETA<b class="${PLAN.arr&&eta>PLAN.arr?'c-a':''}">${s!=null?hm(eta):hm(PLAN.eta)}</b>${s!=null?fmtDelay((eta-PLAN.eta)/6e4):''}</div><div>FUEL<b class="${fuel!=null&&fuel<num(S.reserve,2)?'c-r':''}">${fuel!=null?fuel.toFixed(1)+' L':'—'}</b></div><div>OAT<b>${oat?Math.round(oat.T)+'°C':'—'}</b></div><div>PUMP<b>${np?fmtKm(np.s-s):'—'}</b></div></div>`}
   top.innerHTML=topH;
-  if(!full&&i===lastLiveRenderIdx&&live)return; // only top refresh each fix
+  if(!full&&i===lastLiveRenderIdx)return;
   lastLiveRenderIdx=i;
   const prep=nx?nx.items.filter(x=>x.t==='e').slice(0,4):[];
   const distNext=nx&&s!=null&&!timeMode?((nx.sStart??nx.s)-s):null;
@@ -1566,33 +1692,74 @@ function paintLive(full){const top=$('#dTop'),out=$('#liveOut');if(!PLAN)return;
     <div class="live-phase">${esc(ph.title)}</div><div class="ph-s">${esc(ph.sub)}</div>
     <div class="chips">${(ph.chips||[]).map(c=>`<span class="chip ${c.c}">${esc(c.t)}</span>`).join('')}</div>
   </div>
-  ${ph.kind==='fuel'&&live?`<button class="btn fill" id="lvFilled">TANK FILLED ✓</button><div style="height:8px"></div>`:''}
-  ${ecamHTML(ph)}
+  ${ph.kind==='fuel'&&live?`<button class="btn fill" id="lvFilled">REFUELLED · ENTER PUMP DATA ▸</button><div style="height:8px"></div>`:''}
+  ${ecamHTML(ph,true,true)}
   ${nx?`<div class="next"><div style="font:12px var(--mono);letter-spacing:.08em"><span class="c-w">NEXT ▸ ${esc(nx.title)}</span> <span class="c-a">${distNext!=null?fmtKm(Math.max(0,distNext)):fmtDur(Math.max(0,(nx.start-Date.now()+num(S.live&&S.live.offset))/6e4))}</span></div>
     <div class="chips">${(nx.chips||[]).map(c=>`<span class="chip ${c.c}">${esc(c.t)}</span>`).join('')}</div>
     <div style="margin-top:6px">${prep.map(x=>`<div style="font:13px var(--mono)" class="c-c">${esc(x.k)} → ${esc(x.v)}</div>`).join('')}</div></div>`:''}
   ${live&&timeMode?`<div style="display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:8px"><button class="btn" id="lvPrev">◀ PREV</button><button class="btn g" id="lvSync">HERE NOW</button><button class="btn" id="lvNext">NEXT ▶</button></div>`:''}
   <div class="alert-chips">${ALERTS.slice(0,6).map((q,k)=>`<button data-q="${k}">${esc(q.short)}</button>`).join('')}</div>
   <h2>MILEAGE CHECK</h2>
-  <div class="card"><div class="row r2" style="align-items:end"><div><label>Car AVG km/L</label><input id="lvAvg" type="number" step="0.1" inputmode="decimal" class="opt" value="${esc(S.liveAvg||'')}" placeholder="--.-"></div>
-    <div style="font:13px var(--mono)">PLAN<br><span class="c-g" style="font-size:20px">${planAvgTo(i).toFixed(1)}</span></div></div><div id="lvAvgOut" class="status"></div></div>
-  <div class="btns">${live?`<button class="btn sm" id="lvFill2">FILLED FULL HERE</button><button class="btn sm" id="lvMode">${timeMode?'USE GPS':'TIME MODE'}</button><button class="btn sm r" id="lvStop">END DRIVE</button>`:''}<button class="btn sm" id="lvClear">CLEAR TICKS</button></div>`;
+  <div class="card"><div class="row" style="grid-template-columns:1fr 1fr auto;align-items:end"><div><label>Car AVG km/L</label><input id="lvAvg" type="number" step="0.1" inputmode="decimal" class="opt" value="" placeholder="--.-"></div>
+    <div style="font:13px var(--mono)">PLAN<br><span class="c-g" style="font-size:20px">${(live?planAvgRange(S.live.avgResetS||0,s??0):planAvgTo(i)).toFixed(1)}</span></div>${live?'<button class="btn sm" id="lvAvgGo">ENTER</button>':''}</div>
+    <div id="lvAvgOut" class="status"></div></div>
+  <div class="btns">${live?`<button class="btn sm" id="lvFill2">REFUELLED HERE</button><button class="btn sm" id="lvMode">${timeMode?'USE GPS':'TIME MODE'}</button><button class="btn sm r" id="lvStop">END DRIVE</button>`:''}<button class="btn sm" id="lvClear">CLEAR TICKS</button></div>`;
   const bS=$('#lvStart');if(bS)bS.onclick=startDrive;
-  const fill=()=>{if(!S.live)return;S.live.fuelAtFromS=num(S.tank,35);S.live.fuelFromS=LV.s||0;S.live.fuelStartL=null;save(true);speak('Tank full. Fuel plan updated.');renderDrive(true)};
-  const bF=$('#lvFilled');if(bF)bF.onclick=()=>{fill();LV.stopLatch=null};const bF2=$('#lvFill2');if(bF2)bF2.onclick=fill;
+  window._fill=(onb)=>fill(onb);
+  const fill=(onb)=>{if(!S.live)return;S.live.fuelAtFromS=onb!=null?onb:num(S.tank,35);S.live.fuelFromS=LV.s||0;S.live.filledAtS=Math.max(1,LV.s||0);LV.stopLatch=null;PLAN=buildPlan();save(true);LV.phaseId=null;renderDrive(true)};
+  const bF=$('#lvFilled');if(bF)bF.onclick=()=>openRefuel(true);const bF2=$('#lvFill2');if(bF2)bF2.onclick=()=>openRefuel(false);
+  const aA=$('#askAvg');if(aA)aA.onclick=()=>{const el=$('#lvAvg');if(el){el.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>el.focus(),400)}};
   const bM=$('#lvMode');if(bM)bM.onclick=()=>{if(S.live.mode==='time'){S.live.mode='gps';startGPS()}else{S.live.mode='time';S.live.offset=Date.now()-PLAN.phases[i].start.getTime()}save();renderDrive(true)};
   const bX=$('#lvStop');if(bX)bX.onclick=()=>{if(window._stopc){window._stopc=0;stopDrive()}else{window._stopc=1;bX.textContent='TAP AGAIN'}};
   $('#lvClear').onclick=()=>{S.checks={};save();renderDrive(true)};
   if(timeMode){const go=j=>{j=Math.max(0,Math.min(PLAN.phases.length-1,j));S.live.offset=Date.now()-PLAN.phases[j].start.getTime();save();renderDrive(true)};
     $('#lvPrev').onclick=()=>go(i-1);$('#lvNext').onclick=()=>go(i+1);$('#lvSync').onclick=()=>go(i)}
   out.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>openAlert(+b.dataset.q));
-  const paintAvg=()=>{const v=num(S.liveAvg,0),pl=planAvgTo(i),o=$('#lvAvgOut');if(!v||!pl){o.innerHTML='';return}
-    const d=(v/pl-1)*100;const nc=Math.max(60,Math.min(140,Math.round(num(S.calib,100)*v/pl)));
-    if(Math.abs(d)>35){o.innerHTML=`<span class="c-a">${d>0?'+':''}${d.toFixed(0)}% · RESET AVG km/L AND RECHECK</span>`;return}
-    o.innerHTML=`<span class="${d>=-3?'c-g':'c-a'}">${d>=0?'+':''}${d.toFixed(0)}% VS PLAN</span>${d<-8?'<br><span class="c-c">SMOOTHER THROTTLE · EARLIER UPSHIFT · MORE COASTING · AC −1 STEP</span>':''}<div style="height:8px"></div><button class="btn sm" id="lvCal">SET MILEAGE ${nc}%</button>`;
-    $('#lvCal').onclick=()=>{S.calib=nc;$('#calib').value=nc;save();PLAN=buildPlan();renderDrive(true)}};
-  $('#lvAvg').oninput=e=>{S.liveAvg=e.target.value;save();paintAvg()};paintAvg();paintFollow()}
+  const paintAvg=()=>{const o=$('#lvAvgOut');if(!o)return;const L=live&&S.live.mpg&&S.live.mpg.length?S.live.mpg[S.live.mpg.length-1]:null;if(!L){o.innerHTML='';return}
+    const d=(L.ratio-1)*100;o.innerHTML=`<span class="${d>=-3?'c-g':'c-a'}">LAST ${L.v.toFixed(1)} km/L · ${d>=0?'+':''}${d.toFixed(0)}% VS PLAN</span>`+
+      (L.adv&&L.adv.length?ecamHTML({id:'adv'+L.at,items:[H(d>=-3?'MAINTAIN':'TO RECOVER MILEAGE'),...L.adv]}):'')+
+      `<div class="hist c-g">${S.live.mpg.slice(-4).map(x=>`KM ${(x.odo/1000).toFixed(0)} · ${x.v.toFixed(1)}`).join('  ·  ')}</div>`};
+  const go=$('#lvAvgGo');if(go)go.onclick=()=>{const v=num($('#lvAvg').value,0);if(!(v>3&&v<40)){$('#lvAvgOut').innerHTML='<span class="c-a">ENTER CAR AVG km/L</span>';return}mileageInput(v,ph);paintLive(true)};
+  paintAvg();paintFollow()}
 let lastLiveRenderIdx=-1;
+function planAvgRange(a,b){let km=0,l=0;if(!PLAN)return 0;PLAN.phases.forEach(p=>{if(p.kind!=='zone')return;const x=Math.max(a,p.sStart),y=Math.min(b,p.sEnd);if(y>x){km+=(y-x)/1000;l+=p.fuel*(y-x)/(p.sEnd-p.sStart)}});
+  if(km<0.5){const i=currentPhaseIdx();const z=PLAN.phases.slice(i).find(p=>p.kind==='zone');return z?z.kmpl:0}return km/l}
+function mileageAdvice(ph,ratio){const a=[];if(ratio>=0.97){a.push(E('MILEAGE','ON PLAN · MAINTAIN'));if(ph&&ph.band)a.push(E('CRUISE',ph.band[0]+'–'+ph.band[1]+' km/h','m'));return a}
+  if(ph&&ph.kind==='zone'){const tgt=ph.band?ph.band[1]:null;if(tgt&&LV.speed>tgt+3)a.push(E('SPEED','REDUCE TO '+tgt,'m'));
+    if(ph.cl&&ph.cl.ac!=='OFF'){const k=AC_STEP.indexOf(ph.cl.ac);a.push(E('AC',k>1?'STEP DOWN → '+AC_STEP[k-1]:'OFF · FRESH · BLOWER 2'))}
+    if(TYPES[ph.type].cruise)a.push(E('GEAR','5th BY 50 km/h'),E('THROTTLE','STEADY · NO SURGES'),E('SLOWDOWN AHEAD','LIFT OFF EARLIER'));
+    else a.push(E('UPSHIFT','EARLIER'),E('SIGNALS · BREAKERS','COAST IN GEAR'),E('STOPPED > 1 MIN','ENGINE OFF'))}
+  a.push(E('WINDOWS','UP ABOVE 50'),E('TYRE PRESSURE','CHECK AT NEXT STOP'));return a.slice(0,6)}
+function mileageInput(v,ph){if(!S.live)return;const pl=planAvgRange(S.live.avgResetS||0,LV.s||0);if(!pl)return;const ratio=v/pl;const km=((LV.s||0)-(S.live.avgResetS||0))/1000;
+  const adv=mileageAdvice(ph,ratio);S.live.mpg=S.live.mpg||[];S.live.mpg.push({odo:S.live.odo||0,v,ratio,at:Date.now(),adv});S.live.lastReadOdo=S.live.odo||0;
+  let said='Mileage '+v.toFixed(1)+'. ';
+  if(Math.abs(ratio-1)<=0.35&&km>=5){const c0=num(S.calib,100);const nc=Math.max(60,Math.min(140,Math.round(Math.max(c0-8,Math.min(c0+8,c0*Math.pow(ratio,0.5))))));if(nc!==num(S.calib,100)){S.calib=nc;try{$('#calib').value=nc}catch(e){}PLAN=buildPlan();said+='Fuel plan updated. '}}
+  else if(Math.abs(ratio-1)>0.35)said+='Reading differs a lot from plan. Reset average at the next fuel stop. ';
+  if(ratio<0.97){said+=Math.round((1-ratio)*100)+' percent below plan. '+adv.slice(0,2).map(x=>x.k.toLowerCase()+' '+x.v.toLowerCase()).join('. ')}else said+='On or above plan. Maintain.';
+  save(true);speak(said)}
+function openRefuel(atStop){const tank=num(S.tank,35);const est=liveFuelLeft();
+  $('#ovSheet').innerHTML=`<h3 style="color:var(--c)">REFUEL · PUMP DATA</h3>
+  <div class="row r2"><div><label>Litres (pump display)</label><input id="rfL" type="number" step="0.01" inputmode="decimal" class="req" placeholder="□□.□□"></div>
+    <div><label>Full tank</label><div class="toggle" id="rfFull"><button data-v="yes" class="on">YES</button><button data-v="no">NO</button></div></div></div>
+  <div class="row r2"><div><label>Density kg/m³</label><input id="rfD" type="number" step="0.1" inputmode="decimal" class="opt" placeholder="7__._" value="${esc(S.density||'')}"></div>
+    <div><label>Rate ₹/L</label><input id="rfP" type="number" step="0.01" inputmode="decimal" class="opt" placeholder="---.--"></div></div>
+  <div class="status c-g">EST. IN TANK BEFORE · ${est!=null?est.toFixed(1)+' L':'—'}</div><div class="status" id="rfMsg"></div><div style="height:8px"></div>
+  <button class="btn g" id="rfSave">SAVE ▸</button><div style="height:8px"></div><button class="btn a sm" id="rfCancel">CANCEL</button>`;
+  $('#ov').classList.add('on');let full='yes';
+  $('#rfFull').onclick=e=>{const b=e.target.closest('button');if(!b)return;full=b.dataset.v;[...$('#rfFull').children].forEach(x=>x.classList.toggle('on',x.dataset.v===full))};
+  $('#rfCancel').onclick=()=>$('#ov').classList.remove('on');
+  $('#rfSave').onclick=()=>{const L=num($('#rfL').value,0);if(!(L>0&&L<=40)){$('#rfMsg').innerHTML='<span class="c-a">ENTER LITRES FROM PUMP</span>';return}
+    const D=num($('#rfD').value,0),P=num($('#rfP').value,0);if(D>=700&&D<=800)S.density=String(D);
+    const onb=full==='yes'?tank:Math.min(tank,(est||0)+L);
+    S.live.fills=S.live.fills||[];const prevFull=[...S.live.fills].reverse().find(f=>f.full);
+    let msg='Refuel logged. '+L.toFixed(1)+' litres. ';
+    if(full==='yes'&&prevFull){const km=((S.live.odo||0)-prevFull.odo)/1000;if(km>=20){const meas=km/L;const pl=planAvgRange(Math.max(0,(LV.s||0)-km*1000),LV.s||0);
+      msg+='Measured mileage since last full tank '+meas.toFixed(1)+' kilometres per litre. ';
+      if(pl){const r=meas/pl;if(Math.abs(r-1)<=0.35){S.calib=Math.max(60,Math.min(140,Math.round(num(S.calib,100)*r)));try{$('#calib').value=S.calib}catch(e){}}}
+      S.live.mpg=S.live.mpg||[];S.live.mpg.push({odo:S.live.odo||0,v:meas,ratio:pl?meas/pl:1,at:Date.now(),adv:[],measured:true})}}
+    S.live.fills.push({odo:S.live.odo||0,s:LV.s||0,L,full:full==='yes',D:D||null,P:P||null,at:Date.now()});
+    S.live.avgResetS=LV.s||0;if(P)msg+='Cost '+Math.round(L*P)+' rupees. ';
+    $('#ov').classList.remove('on');if(atStop)LV.stopLatch=null;window._fill(onb);speak(msg+'Reset trip A and average now.')}}
 function planAvgTo(i){let km=0,l=0;PLAN.phases.slice(0,i+1).forEach(p=>{if(p.kind==='zone'){km+=p.km;l+=p.fuel}});if(!km){const z=PLAN.phases.find(p=>p.kind==='zone');return z?z.kmpl:0}return km/l}
 function remainingMin(s){if(!PLAN)return 0;let m=0;const now=s??0;PLAN.phases.forEach(ph=>{if(ph.kind==='zone'){if(ph.sEnd<=now)return;const f=(ph.sEnd-Math.max(ph.sStart,now))/(ph.sEnd-ph.sStart);m+=(ph.end-ph.start)/6e4*f}else if((ph.kind==='fuel'||ph.kind==='stop')&&ph.s>now)m+=(ph.end-ph.start)/6e4});return m}
 function paceFactor(){if(!S.live||LV.s==null||LV.s<5000||LV.movingMs<300000)return 1;let plan=0;PLAN.phases.forEach(ph=>{if(ph.kind!=='zone')return;const a=ph.sStart,b=Math.min(ph.sEnd,LV.s);if(b>a)plan+=(ph.end-ph.start)*(b-a)/(ph.sEnd-ph.sStart)});
@@ -1601,11 +1768,11 @@ function paceFactor(){if(!S.live||LV.s==null||LV.s<5000||LV.movingMs<300000)retu
 /* ============================== OFFLINE TILES ============================== */
 function lon2t(lon,z){return Math.floor((lon+180)/360*2**z)}function lat2t(lat,z){return Math.floor((1-Math.log(Math.tan(rad(lat))+1/Math.cos(rad(lat)))/Math.PI)/2*2**z)}
 $('#offBtn').onclick=async()=>{const st=$('#offSt');if(!G){st.innerHTML='<span class="c-a">COMPUTE A ROUTE FIRST</span>';return}if(!navigator.onLine){st.innerHTML='<span class="c-a">NO INTERNET</span>';return}
-  const set=new Set();[12,14,15].forEach(z=>{for(let s=0;s<=G.total;s+=z>=15?400:1000){const p=pointAt(s);const x=lon2t(p[1],z),y=lat2t(p[0],z);for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){if(z===15&&(dx||dy))continue;set.add(z+'/'+(x+dx)+'/'+(y+dy))}}});
-  const theme=curTheme||'night';const urls=[...set].map((k,i)=>TILES[theme].replace('{s}','abcd'[i%4]).replace('{z}/{x}/{y}',k).replace('{r}',''));
+  const set=new Set();[[11,5000,1],[13,2000,1],[15,600,0]].forEach(([z,st,w])=>{for(let s=0;s<=G.total;s+=st){const p=pointAt(s);const x=lon2t(p[1],z),y=lat2t(p[0],z);for(let dx=-w;dx<=w;dx++)for(let dy=-w;dy<=w;dy++)set.add(z+'/'+(x+dx)+'/'+(y+dy))}});
+  const spec=tileSpec(curTheme||'night');const urls=[...set].map((k,i)=>spec.url.replace('{s}','abc'[i%3]).replace('{z}/{x}/{y}',k).replace('{r}',''));
   let done=0,fail=0;st.textContent='0 / '+urls.length;const b=$('#offBtn');b.disabled=true;
   const worker=async()=>{while(urls.length){const u=urls.pop();try{await fetch(u,{mode:'cors'});done++}catch(e){fail++}st.textContent=`${done} / ${done+fail+urls.length}`}};
-  await Promise.all([worker(),worker(),worker(),worker()]);b.disabled=false;st.innerHTML=`<span class="c-g">✓ ${done} TILES SAVED</span>${fail?` <span class="c-a">${fail} FAILED</span>`:''}`};
+  await Promise.all([worker(),worker()]);b.disabled=false;st.innerHTML=`<span class="c-g">✓ ${done} TILES SAVED</span>${fail?` <span class="c-a">${fail} FAILED</span>`:''}`};
 
 /* ============================== ALERTS ============================== */
 const ALERTS=[
@@ -1628,10 +1795,13 @@ $('#ov').addEventListener('click',e=>{if(e.target.id==='ov')$('#ov').classList.r
 /* ============================== LOOPS & INIT ============================== */
 setInterval(()=>{const n=new Date();$('#clk').textContent=pad2(n.getHours())+':'+pad2(n.getMinutes())+':'+pad2(n.getSeconds());gpsDot();
   if(S.tab==='drive'&&PLAN&&S.live&&S.live.mode==='time'){liveTick()}},1000);
+setInterval(()=>{if(S.live){liveWx(false);if(S.wxMode==='auto'&&navigator.onLine&&S.route&&S.route.wx&&Date.now()-S.route.wx.at>45*6e4){S.route.wx.at=Date.now();refreshWx().then(()=>{PLAN=buildPlan();[MAPS.plan,MAPS.drive].forEach(m=>m&&drawWx(m))})}}},60000);
 setInterval(()=>{applyTheme();const ae=document.activeElement;if(S.tab==='drive'&&PLAN&&!$('#ov').classList.contains('on')&&!(ae&&ae.tagName==='INPUT'))paintLive(false)},30000);
 applyTheme();netDot();renderWps();buildGeo();
 if('serviceWorker'in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 if(S.live&&planValid()){PLAN=buildPlan();if(S.live.mode!=='time')startGPS();requestWake()}
+else if(planValid()&&(S.tab==='drive'||S.tab==='plan')){PLAN=buildPlan();ensureWatch()}
+bindField('cartoKey',()=>{[MAPS.plan,MAPS.drive].forEach(m=>m&&setTiles(m))});
 const h0=(location.hash||'').slice(1);show(['setup','plan','drive','alerts','car'].includes(h0)?h0:(S.live?'drive':S.tab||'setup'));
 </script>
 </body>
