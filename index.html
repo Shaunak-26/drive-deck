@@ -716,14 +716,19 @@ input.opt::placeholder{color:var(--dim);opacity:.6}
 .btn:disabled{opacity:.45}
 .btns{display:flex;gap:8px;flex-wrap:wrap}
 .place{position:relative}
-.place .pr{display:grid;grid-template-columns:1fr 46px;gap:6px}
-.place .pr.three{grid-template-columns:1fr 66px 46px}
+.place .pr{display:grid;grid-template-columns:1fr 44px 44px;gap:6px}
+.place .pr.three{grid-template-columns:1fr 54px 44px 44px}
 .ib{background:transparent;border:1px solid var(--inpb);color:var(--c);border-radius:8px;font:700 16px var(--mono)}
 .ib.x{color:var(--r)}
 .sugg{position:absolute;left:0;right:0;top:100%;z-index:1100;background:var(--panel2);border:1px solid var(--c);border-radius:8px;margin-top:4px;max-height:260px;overflow:auto;display:none}
 .sugg.on{display:block}
 .sugg div{padding:11px 10px;border-bottom:1px solid var(--line);font-size:13px;color:var(--c);cursor:pointer}
 .sugg div small{display:block;color:var(--w);opacity:.7;font-size:11px}
+.sugg .k{font:700 9.5px 'B612',sans-serif;letter-spacing:.08em;border:1px solid var(--w);opacity:.75;border-radius:4px;padding:1px 4px;margin-left:6px}
+.sugg .dkm{float:right;color:var(--g);font:700 11px var(--mono)}
+.sugg .hd{color:var(--w);opacity:.6;font:10px var(--mono);letter-spacing:.1em;cursor:default;padding:7px 10px}
+#pkWrap{position:relative}
+#pkX{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:900;pointer-events:none;font:700 30px var(--mono);color:var(--m);text-shadow:0 0 3px var(--bg)}
 .resolved{font:11px var(--mono);color:var(--g);margin-top:3px;min-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .c-g{color:var(--g)}.c-c{color:var(--c)}.c-a{color:var(--a)}.c-r{color:var(--r)}.c-m{color:var(--m)}.c-w{color:var(--w)}
 .status{font:13px var(--mono);margin-top:8px;min-height:1em}
@@ -797,6 +802,9 @@ input.opt::placeholder{color:var(--dim);opacity:.6}
 .ph.now{border:1px solid var(--g);border-radius:10px;padding:8px}
 .ph.now::before{background:var(--g)}
 .tlmore{font:12px var(--mono);color:var(--g);margin:2px 0 10px;cursor:pointer}
+.haltb{border:1px solid var(--a);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:var(--ecam)}
+.haltb .t{font:700 26px var(--mono);color:var(--a);line-height:1.1}
+.haltb .l{font:11px var(--mono);letter-spacing:.12em}
 .sheet .row{margin-bottom:10px}
 .live-top{background:var(--ecam);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
 .live-k{font:11px var(--mono);letter-spacing:.12em}
@@ -841,14 +849,14 @@ input.opt::placeholder{color:var(--dim);opacity:.6}
   <h2>ROUTE</h2>
   <div class="card">
     <label>From</label>
-    <div class="place" data-p="origin"><div class="pr"><input class="req" placeholder="□□□□□□□□" autocomplete="off"><button class="ib" data-gps="1" title="My location">◎</button></div><div class="sugg"></div><div class="resolved"></div></div>
+    <div class="place" data-p="origin"><div class="pr"><input class="req" placeholder="□□□□□□□□" autocomplete="off"><button class="ib" data-gps="1" title="My location">◎</button><button class="ib" data-pick="1" title="Pick on map">⌖</button></div><div class="sugg"></div><div class="resolved"></div></div>
     <div style="height:8px"></div>
     <label>Via · stop min</label>
     <div id="wps"></div>
     <button class="btn sm" id="addWp">+ VIA</button>
     <div style="height:10px"></div>
     <label>To</label>
-    <div class="place" data-p="dest"><div class="pr"><input class="req" placeholder="□□□□□□□□" autocomplete="off"><button class="ib x" data-clr="1">×</button></div><div class="sugg"></div><div class="resolved"></div></div>
+    <div class="place" data-p="dest"><div class="pr"><input class="req" placeholder="□□□□□□□□" autocomplete="off"><button class="ib" data-pick="1" title="Pick on map">⌖</button><button class="ib x" data-clr="1">×</button></div><div class="sugg"></div><div class="resolved"></div></div>
   </div>
 
   <h2>TIME · FUEL</h2>
@@ -923,7 +931,7 @@ input.opt::placeholder{color:var(--dim);opacity:.6}
     </div>
   </div>
   <h2>TYRES · COLD PSI</h2>
-  <div class="card"><div class="row r3">
+  <div class="card"><button class="btn sm" id="tyEnter">ENTER MEASURED PRESSURE ▸</button><div style="height:10px"></div><label>Target from door-pillar label</label><div class="row r3">
     <div><label>Front</label><input type="number" id="tyreF" inputmode="numeric"></div>
     <div><label>Rear</label><input type="number" id="tyreR" inputmode="numeric"></div>
     <div><label>+ Loaded</label><input type="number" id="tyreLoad" inputmode="numeric"></div>
@@ -998,7 +1006,7 @@ const pad2=n=>String(n).padStart(2,'0');
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())};
 const DEF={origin:{q:''},dest:{q:''},wps:[],date:today(),dep:'',arr:'',pax:'1',bars:'',lpb:2.5,reserve:2,tank:35,calib:100,
   wxMode:'auto',tmax:'',rain:'none',parked:'sun',tyreF:33,tyreR:33,tyreLoad:2,theme:'auto',voice:'on',
-  ciMode:'auto',ci:0,checks:{},tab:'setup',liveAvg:'',route:null,routeKey:'',live:null,wxLayer:'rain',cartoKey:'',aural:'on',density:''};
+  ciMode:'auto',ci:0,checks:{},tab:'setup',liveAvg:'',route:null,routeKey:'',live:null,wxLayer:'rain',cartoKey:'',aural:'on',density:'',tyreMeas:null};
 let S;
 try{S=Object.assign({},DEF,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){S=Object.assign({},DEF)}
 let saveT=null;
@@ -1053,22 +1061,53 @@ async function getJSON(url,opts={},timeout=25000){const c=new AbortController();
 function netDot(){const on=navigator.onLine;$('#hNet').innerHTML=`<span class="dot ${on?'g':'a'}"></span>NET`}
 addEventListener('online',netDot);addEventListener('offline',netDot);
 
+const PTYPE={city:'CITY',town:'TOWN',village:'VILLAGE',hamlet:'HAMLET',suburb:'SUBURB',neighbourhood:'AREA',quarter:'AREA',locality:'LOCALITY',isolated_dwelling:'HAMLET',state:'STATE',county:'DISTRICT',region:'REGION',municipality:'CITY',borough:'AREA'};
+function typeOf(k,v){if(k==='place')return PTYPE[v]||String(v||'').toUpperCase().replace(/_/g,' ').slice(0,10);
+  if(k==='highway')return'ROAD';if(k==='railway')return'STATION';if(k==='aeroway')return'AIRPORT';if(k==='waterway')return'WATER';
+  if(k==='amenity'&&v==='fuel')return'FUEL';if(k==='amenity'&&v==='place_of_worship')return'WORSHIP';if(k==='amenity'&&v==='restaurant')return'FOOD';
+  if(k==='tourism')return'TOURISM';if(k==='natural')return'NATURE';if(k==='building')return'BUILDING';if(k==='shop')return'SHOP';if(k==='office')return'OFFICE';
+  if(k==='leisure')return'LEISURE';if(k==='historic')return'HISTORIC';if(k==='landuse')return'AREA';
+  return String(v||k||'').toUpperCase().replace(/_/g,' ').slice(0,10)}
+function parseLatLon(q){const m=String(q).match(/^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,; ]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/);
+  if(!m)return null;const la=+m[1],lo=+m[2];if(!isFinite(la)||!isFinite(lo)||Math.abs(la)>90||Math.abs(lo)>180)return null;
+  return{lat:la,lon:lo,name:'PIN',label:la.toFixed(5)+', '+lo.toFixed(5),sub:'COORDINATES',type:'PIN',src:'c'}}
+function mkPhoton(f){const p=f.properties||{};const g=f.geometry&&f.geometry.coordinates;if(!g)return null;
+  const name=p.name||(p.housenumber&&p.street?p.housenumber+' '+p.street:p.street)||p.city||p.district||p.county||p.state||'';
+  if(!name)return null;
+  const addr=[p.street&&p.name?((p.housenumber?p.housenumber+' ':'')+p.street):'',p.district,p.city,p.county,p.state,p.country].filter(Boolean);
+  const sub=[...new Set(addr)].filter(x=>x.toLowerCase()!==name.toLowerCase()).slice(0,3).join(', ');
+  return{lat:+g[1],lon:+g[0],name,label:name,sub,type:typeOf(p.osm_key,p.osm_value),src:'p'}}
+function mkNom(r){const parts=String(r.display_name||'').split(',').map(x=>x.trim()).filter(Boolean);
+  const name=r.name||parts[0]||'';if(!name)return null;
+  const sub=[...new Set(parts)].filter(x=>x.toLowerCase()!==name.toLowerCase()).slice(0,3).join(', ');
+  return{lat:+r.lat,lon:+r.lon,name,label:name,sub,type:typeOf(r.class,r.type),src:'n'}}
+async function photonQ(q,b){const u=`https://photon.komoot.io/api/?q=${enc(q)}&limit=12&lang=en`+(b?`&lat=${b.lat}&lon=${b.lon}&location_bias_scale=0.35&zoom=9`:'');
+  const j=await getJSON(u,{},11000);
+  return (j.features||[]).filter(f=>{const c=(f.properties||{}).countrycode;return !c||c==='IN'}).map(mkPhoton).filter(Boolean)}
+async function nomQ(q){const j=await getJSON(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=12&countrycodes=in&addressdetails=0&q=${enc(q)}`,{},11000);
+  return (Array.isArray(j)?j:[]).map(mkNom).filter(Boolean)}
 async function geocode(q,bias){
-  const b=bias||{lat:LAT0,lon:LON0};const out=[];
-  try{const j=await getJSON(`https://photon.komoot.io/api/?q=${enc(q)}&limit=8&lang=en&lat=${b.lat}&lon=${b.lon}`,{},12000);
-    (j.features||[]).forEach(f=>{const p=f.properties||{};if(p.countrycode&&p.countrycode!=='IN')return;
-      const parts=[p.name,p.street&&(p.housenumber?p.housenumber+' ':'')+p.street,p.district,p.city,p.county,p.state].filter(Boolean);
-      const uniq=[...new Set(parts)];out.push({lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0],label:uniq.slice(0,2).join(', '),sub:uniq.slice(2).join(', ')})})}catch(e){}
-  if(!out.length){try{const j=await getJSON(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=in&q=${enc(q)}`,{},12000);
-    j.forEach(r=>{const parts=String(r.display_name||'').split(',').map(s=>s.trim());out.push({lat:+r.lat,lon:+r.lon,label:parts.slice(0,2).join(', '),sub:parts.slice(2,5).join(', ')})})}catch(e){}}
-  return out.slice(0,6);
+  q=String(q||'').trim();if(!q)return[];
+  const c=parseLatLon(q);if(c)return[c];
+  const jobs=[photonQ(q,bias||{lat:LAT0,lon:LON0}),photonQ(q,null),nomQ(q)];
+  const res=await Promise.allSettled(jobs);
+  const all=[];res.forEach(r=>{if(r.status==='fulfilled')all.push(...r.value)});
+  const seen=new Map();
+  all.forEach(r=>{if(!isFinite(r.lat)||!isFinite(r.lon))return;
+    const k=r.name.toLowerCase()+'@'+r.lat.toFixed(2)+','+r.lon.toFixed(2);
+    if(!seen.has(k))seen.set(k,r);else{const o=seen.get(k);if(!o.sub&&r.sub)o.sub=r.sub;if(!o.type&&r.type)o.type=r.type}});
+  const out=[...seen.values()];const qq=q.toLowerCase();
+  out.forEach((r,i)=>{const n=(r.name||'').toLowerCase();
+    r._s=(n===qq?0:n.startsWith(qq)?1:n.indexOf(qq)>=0?2:3)*100+i});
+  out.sort((a,b)=>a._s-b._s);
+  return out.slice(0,9);
 }
 async function reverseName(lat,lon){try{const j=await getJSON(`https://photon.komoot.io/reverse?lat=${lat}&lon=${lon}&lang=en`,{},10000);const p=(j.features&&j.features[0]&&j.features[0].properties)||{};
   return [p.name,p.district||p.city].filter(Boolean).join(', ')||'MY LOCATION'}catch(e){return 'MY LOCATION'}}
 
 async function osrmRoute(pts){const c=pts.map(p=>(+p.lon).toFixed(6)+','+(+p.lat).toFixed(6)).join(';');
   const q='?overview=full&geometries=geojson&steps=true';let err;
-  for(const b of OSRM){try{const j=await getJSON(b+c+q,{},30000);if(j.code==='Ok'&&j.routes&&j.routes.length)return j.routes[0];err=new Error(j.code||'NO ROUTE')}catch(e){err=e}}
+  for(const b of OSRM){try{const j=await getJSON(b+c+q,{},30000);if(j.code==='Ok'&&j.routes&&j.routes.length){const R=j.routes[0];R.__wp=j.waypoints||[];return R}err=new Error(j.code||'NO ROUTE')}catch(e){err=e}}
   throw err||new Error('NO ROUTE')}
 async function elevations(points){const out=[];for(let i=0;i<points.length;i+=100){const ch=points.slice(i,i+100);
   const j=await getJSON(`https://api.open-meteo.com/v1/elevation?latitude=${ch.map(p=>p[0].toFixed(4)).join(',')}&longitude=${ch.map(p=>p[1].toFixed(4)).join(',')}`,{},20000);
@@ -1211,7 +1250,11 @@ function climate(type,T,avg,rain,elevGain){
     else if(c.ac!=='OFF'){c.ac='LOW';c.acts.unshift(['TEMP WARNING LT','AC OFF','r'])}}
   if(type==='ghat_down'&&rain==='none'&&T>=24){c.ac=AC_STEP[Math.min(3,AC_STEP.indexOf(c.ac)+1)];c.intake='RECIRC';c.windows='UP';c.blower=Math.max(2,c.blower);c.acts=[]}
   if(c.ac!=='OFF')c.windows='UP';return c}
-function kmplFor(type,sp,cl,rain,full){const t=TYPES[type];let b=t.kmpl;const dn=num(S.density,0);if(dn>=700&&dn<=800)b*=dn/745;
+function tyreMeas(){const t=S.tyreMeas;if(!t||!isFinite(t.f)||!isFinite(t.r))return null;if(Date.now()-num(t.at,0)>18*36e5)return null;return t}
+function tyreFactor(){const t=tyreMeas();if(!t)return 1;const loaded=num(S.pax,1)>=4;
+  const pF=num(S.tyreF,33)+(loaded?num(S.tyreLoad,2):0),pR=num(S.tyreR,33)+(loaded?num(S.tyreLoad,2):0);
+  const def=Math.max(0,(pF+pR)/2-(t.f+t.r)/2);return def?Math.max(.9,1-.003*def):1}
+function kmplFor(type,sp,cl,rain,full){const t=TYPES[type];let b=t.kmpl*tyreFactor();const dn=num(S.density,0);if(dn>=700&&dn<=800)b*=dn/745;
   if(t.cruise){const v=Math.min(sp.cruise,sp.avg/.92);if(v>65)b*=1-.009*(v-65);if(v<45)b*=.93}
   if(type==='city_heavy'&&sp.avg<15)b*=.82;
   const acf={OFF:0,LOW:.06,MID:.10,MAX:.14}[cl.ac]||0;b*=1-(type==='ghat_down'?acf*.25:sp.avg<40?acf*1.35:acf);
@@ -1220,7 +1263,7 @@ function kmplFor(type,sp,cl,rain,full){const t=TYPES[type];let b=t.kmpl;const dn
 function litresFor(type,km,dz,kmpl){let l=km/kmpl;if(!type.startsWith('ghat')){if(dz>0)l+=dz*.0009;else l-=Math.min(l*.3,-dz*.0004)}return Math.max(.005,l)}
 
 /* ============================== PLAN ============================== */
-const E=(k,v,cls)=>({t:'e',k,v,cls:cls||''});const H=(text,o)=>Object.assign({t:'h',text},o||{});const M=text=>({t:'m',text});
+const E=(k,v,cls,act)=>({t:'e',k,v,cls:cls||'',act:act||''});const H=(text,o)=>Object.assign({t:'h',text},o||{});const M=text=>({t:'m',text});
 function depDate(){if(S.live&&S.live.routeStart)return new Date(S.live.routeStart);return new Date(S.date+'T'+(S.dep||'07:00'))}
 function arrDate(){if(!S.arr)return null;let a=new Date(S.date+'T'+S.arr);const d0=new Date(S.date+'T'+(S.dep||'07:00'));if(a<=d0)a=new Date(a.getTime()+864e5);return a}
 function wpDwell(li){const p=S.route.pts[li+1];return num(p&&p.dwell)}
@@ -1329,7 +1372,15 @@ function buildPlan(){
   p.push(H('FUEL'));
   if(f0&&!f0.done){p.push(E('FUEL STOP',(f0.pump?f0.pump.name+' · ':'')+'KM '+(f0.s/1000).toFixed(f0.s<10000?1:0),'m'));if(stops.length>1)p.push(E('FUEL STOPS',String(stops.length),'m'));if(f0.late)p.push(E('FIRST PUMP','BEYOND SAFE RANGE','r'))}
   else p.push(E('FUEL','SUFFICIENT'));
-  p.push(H('WALK-ROUND'),E('TYRES ×4','VISUAL'));if(!f0)p.push(E('TYRE PRESSURE',`${P.pF} / ${P.pR} psi`,'m'));
+  p.push(H('WALK-ROUND'),E('TYRES ×4','VISUAL'));
+  const tmz=tyreMeas();
+  if(tmz){const dF=tmz.f-P.pF,dR=tmz.r-P.pR,low=Math.min(dF,dR)<=-2,high=Math.max(dF,dR)>=4;
+    p.push(E('TYRE PRESSURE',`${tmz.f} / ${tmz.r} psi`,low||high?'a':'','tyre'));
+    p.push(E('TARGET',`${P.pF} / ${P.pR} psi`,'m'));
+    if(low)p.push(E('INFLATE BEFORE DRIVING',[dF<=-2?'FRONT +'+(-dF).toFixed(0):'',dR<=-2?'REAR +'+(-dR).toFixed(0):''].filter(Boolean).join(' · ')+' psi','a'));
+    else if(high)p.push(E('OVER TARGET','RELEASE TO TARGET · HARSH RIDE','a'));
+    else p.push(E('PRESSURE','ON TARGET'));
+  }else p.push(E('TYRE PRESSURE',`TARGET ${P.pF} / ${P.pR} · TAP TO ENTER`,'m','tyre'));
   p.push(E('UNDER CAR','NO LEAKS'),E('LIGHTS · HORN','CHECK'),E('BONNET','LATCHED'),E('EXTRA LOAD','REMOVE'));
   p.push(H('COCKPIT'),E('SEAT · MIRRORS','ADJUST'),E('PHONE','MOUNTED · CHARGING'),E('DISPLAY','INSTANT km/L'));if(!f0)p.push(E('TRIP A · AVG','RESET'));
   p.push(H('ENGINE START'),E('PARKING BRAKE','SET'),E('GEAR','NEUTRAL'),E('AC · BLOWER','OFF · 0'),E('CLUTCH','FULLY DOWN'),E('KEY ON','ALL WARNING LTS ON'),E('START','NO THROTTLE'),
@@ -1428,24 +1479,85 @@ $('#nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b)s
 
 /* ============================== SETUP FORM ============================== */
 function placeObj(key){if(key==='origin')return S.origin;if(key==='dest')return S.dest;return S.wps[+key.slice(1)]}
-function renderWps(){$('#wps').innerHTML=S.wps.map((w,i)=>`<div class="place" data-p="w${i}" style="margin-bottom:8px"><div class="pr three"><input class="req" placeholder="□□□□□□" autocomplete="off"><input class="opt dw" type="number" inputmode="numeric" placeholder="min" value="${esc(w.dwell)}"><button class="ib x" data-del="${i}">×</button></div><div class="sugg"></div><div class="resolved"></div></div>`).join('');
+function renderWps(){$('#wps').innerHTML=S.wps.map((w,i)=>`<div class="place" data-p="w${i}" style="margin-bottom:8px"><div class="pr three"><input class="req" placeholder="□□□□□□" autocomplete="off"><input class="opt dw" type="number" inputmode="numeric" placeholder="min" value="${esc(w.dwell)}"><button class="ib" data-pick="1" title="Pick on map">⌖</button><button class="ib x" data-del="${i}">×</button></div><div class="sugg"></div><div class="resolved"></div></div>`).join('');
   $$('#wps .place').forEach(initPlace)}
 $('#wps').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;S.wps.splice(+b.dataset.del,1);renderWps();save()});
 $('#wps').addEventListener('input',e=>{if(e.target.classList.contains('dw')){const i=+e.target.closest('.place').dataset.p.slice(1);S.wps[i].dwell=e.target.value;save()}});
 $('#addWp').onclick=()=>{S.wps.push({q:'',dwell:10});renderWps();save()};
 function paintPlace(el){const o=placeObj(el.dataset.p);const inp=el.querySelector('input');inp.value=o.q||'';inp.classList.toggle('unres',!!o.q&&o.lat==null);
-  el.querySelector('.resolved').textContent=o.lat!=null?'✓ '+(o.label||'')+(o.sub?' · '+o.sub:''):''}
+  el.querySelector('.resolved').textContent=o.lat!=null?'✓ '+(o.label||'')+(o.type?' ['+o.type+']':'')+(o.sub?' · '+o.sub:''):''}
+function sugRow(r,i,ob){const d=ob&&ob.lat!=null&&r.lat!=null?hav(ob.lat,ob.lon,r.lat,r.lon):null;
+  return`<div data-i="${i}">${d!=null?`<span class="dkm">${d<1000?Math.round(d)+' m':Math.round(d/1000)+' km'}</span>`:''}${esc(r.label)}${r.type?`<span class="k">${esc(r.type)}</span>`:''}<small>${esc(r.sub||'')}</small></div>`}
 function initPlace(el){const inp=el.querySelector('input');const sg=el.querySelector('.sugg');let tm=null,last=[];paintPlace(el);
-  inp.addEventListener('input',()=>{const o=placeObj(el.dataset.p);o.q=inp.value;delete o.lat;delete o.lon;o.label='';save();paintPlace(el);clearTimeout(tm);
-    if(inp.value.trim().length<3){sg.classList.remove('on');return}
-    tm=setTimeout(async()=>{sg.innerHTML='<div><span class="spin">◐</span></div>';sg.classList.add('on');const b=S.origin&&S.origin.lat!=null?S.origin:null;last=await geocode(inp.value.trim(),b);
-      sg.innerHTML=last.length?last.map((r,i)=>`<div data-i="${i}">${esc(r.label)}<small>${esc(r.sub||'')}</small></div>`).join(''):'<div class="c-a">NOT FOUND</div>'},450)});
-  sg.addEventListener('click',e=>{const d=e.target.closest('[data-i]');if(!d)return;const r=last[+d.dataset.i];const o=placeObj(el.dataset.p);Object.assign(o,{q:r.label,lat:r.lat,lon:r.lon,label:r.label,sub:r.sub});save();sg.classList.remove('on');paintPlace(el)});
-  inp.addEventListener('blur',()=>setTimeout(()=>sg.classList.remove('on'),250));
+  const run=async(force)=>{const q=inp.value.trim();if(q.length<2){sg.classList.remove('on');return[]}
+    if(force)sg.dataset.force='1';
+    sg.innerHTML='<div><span class="spin">◐</span> SEARCHING</div>';sg.classList.add('on');
+    const key=el.dataset.p;const ob=key!=='origin'&&S.origin&&S.origin.lat!=null?S.origin:null;
+    last=await geocode(q,ob||null);
+    sg.innerHTML=last.length?'<div class="hd">TAP TO CONFIRM</div>'+last.map((r,i)=>sugRow(r,i,ob)).join('')
+      :'<div class="c-a">NOT FOUND · TRY A NEARBY LANDMARK OR USE ⌖ PICK ON MAP</div>';
+    sg.classList.add('on');if(force)setTimeout(()=>{sg.dataset.force=''},1200);
+    return last};
+  el._search=run;
+  inp.addEventListener('input',()=>{const o=placeObj(el.dataset.p);o.q=inp.value;delete o.lat;delete o.lon;o.label='';o.type='';save();paintPlace(el);clearTimeout(tm);
+    if(inp.value.trim().length<2){sg.classList.remove('on');return}
+    tm=setTimeout(()=>run(),500)});
+  sg.addEventListener('click',e=>{const d=e.target.closest('[data-i]');if(!d)return;const r=last[+d.dataset.i];if(!r)return;const o=placeObj(el.dataset.p);
+    Object.assign(o,{q:r.label,lat:r.lat,lon:r.lon,label:r.label,sub:r.sub,type:r.type});save();sg.classList.remove('on');paintPlace(el);$('#cStatus').textContent=''});
+  inp.addEventListener('blur',()=>setTimeout(()=>{if(sg.dataset.force==='1')return;sg.classList.remove('on')},280));
   const gb=el.querySelector('[data-gps]');if(gb)gb.onclick=()=>{gb.innerHTML='<span class="spin">◐</span>';navigator.geolocation.getCurrentPosition(async p=>{const o=placeObj(el.dataset.p);
-      Object.assign(o,{lat:p.coords.latitude,lon:p.coords.longitude,q:'MY LOCATION',label:'MY LOCATION',sub:''});paintPlace(el);save();gb.textContent='◎';
+      Object.assign(o,{lat:p.coords.latitude,lon:p.coords.longitude,q:'MY LOCATION',label:'MY LOCATION',sub:'',type:'GPS'});paintPlace(el);save();gb.textContent='◎';
       const nm=await reverseName(o.lat,o.lon);o.label=nm;o.q=nm;paintPlace(el);save()},()=>{gb.textContent='◎';$('#cStatus').innerHTML='<span class="c-a">LOCATION NOT AVAILABLE</span>'},{enableHighAccuracy:true,timeout:15000})};
+  const pb=el.querySelector('[data-pick]');if(pb)pb.onclick=()=>openPick(el.dataset.p);
   const cb=el.querySelector('[data-clr]');if(cb)cb.onclick=()=>{const o=placeObj(el.dataset.p);Object.keys(o).forEach(k=>delete o[k]);o.q='';save();paintPlace(el)}}
+function openTyre(ckKey){const loaded=num(S.pax,1)>=4;
+  const pF=num(S.tyreF,33)+(loaded?num(S.tyreLoad,2):0),pR=num(S.tyreR,33)+(loaded?num(S.tyreLoad,2):0);
+  const tm=S.tyreMeas||{};
+  $('#ovSheet').innerHTML=`<h3 style="color:var(--c)">TYRE PRESSURE · COLD</h3>
+  <div class="status c-w">OPTIONAL · ENTER WHAT THE GAUGE SHOWS BEFORE DRIVING</div>
+  <div class="row r2"><div><label>Front psi</label><input id="tyF" type="number" step="0.5" inputmode="decimal" class="opt" placeholder="${pF}" value="${tm.f!=null?esc(tm.f):''}"></div>
+  <div><label>Rear psi</label><input id="tyR" type="number" step="0.5" inputmode="decimal" class="opt" placeholder="${pR}" value="${tm.r!=null?esc(tm.r):''}"></div></div>
+  <div class="status c-m">TARGET ${pF} / ${pR} psi${loaded?' · INCLUDES LOAD':''}</div>
+  <div class="status" id="tyMsg"></div><div style="height:8px"></div>
+  <button class="btn g" id="tySave">SAVE ▸</button><div style="height:8px"></div>
+  <div class="btns"><button class="btn sm" id="tySkip">SKIP · ASSUME TARGET</button><button class="btn a sm" id="tyCancel">CANCEL</button></div>`;
+  $('#ov').classList.add('on');
+  const done=()=>{$('#ov').classList.remove('on');if(ckKey)S.checks[ckKey]=1;save(true);PLAN=buildPlan();if(S.tab==='plan')renderPlan();else if(S.tab==='drive')renderDrive(true)};
+  $('#tyCancel').onclick=()=>$('#ov').classList.remove('on');
+  $('#tySkip').onclick=()=>{S.tyreMeas=null;done()};
+  $('#tySave').onclick=()=>{const f=num($('#tyF').value,NaN),r=num($('#tyR').value,NaN);
+    if(!(f>=15&&f<=50&&r>=15&&r<=50)){$('#tyMsg').innerHTML='<span class="c-a">ENTER BOTH, 15–50 psi</span>';return}
+    S.tyreMeas={f,r,at:Date.now()};
+    const dF=f-pF,dR=r-pR;const low=Math.min(dF,dR)<=-2;
+    const pct=Math.round((1-tyreFactor())*1000)/10;
+    speak(low?'Tyres low. '+[dF<=-2?'Front '+(-dF).toFixed(0):'',dR<=-2?'rear '+(-dR).toFixed(0):''].filter(Boolean).join(' and ')+' p s i under target. Inflate before driving'+(pct?'. About '+pct+' percent mileage lost otherwise.':'.')
+      :Math.max(dF,dR)>=4?'Tyres over target. Release to target for a softer ride.':'Tyre pressure on target.');
+    done()};
+}
+let pickMap=null;
+function killPick(){if(pickMap){try{pickMap.remove()}catch(e){}pickMap=null}}
+function openPick(key){const o=placeObj(key);
+  const c=o.lat!=null?[o.lat,o.lon]:(LV.fix?[LV.fix.lat,LV.fix.lon]:(S.origin&&S.origin.lat!=null?[S.origin.lat,S.origin.lon]:[LAT0,LON0]));
+  $('#ovSheet').innerHTML=`<h3 style="color:var(--c)">PICK ON MAP</h3>
+  <div class="status c-w">DRAG THE MAP SO THE CROSS SITS ON YOUR POINT</div>
+  <div id="pkWrap"><div id="pkMap" class="map" style="height:48vh"></div><div id="pkX">⊕</div></div>
+  <div class="status c-g" id="pkPos"></div><div style="height:6px"></div>
+  <button class="btn g" id="pkSet">SET THIS POINT ▸</button><div style="height:8px"></div><button class="btn a sm" id="pkCancel">CANCEL</button>`;
+  $('#ov').classList.add('on');
+  setTimeout(()=>{killPick();if(typeof L==='undefined')return;
+    pickMap=L.map('pkMap',{zoomControl:true,attributionControl:true});
+    const sp=tileSpec(curTheme||'night');L.tileLayer(sp.url,{maxZoom:19,subdomains:sp.sub,attribution:sp.attr,crossOrigin:true}).addTo(pickMap);
+    document.getElementById('pkMap').classList.toggle('dk',sp.dark);
+    pickMap.setView(c,o.lat!=null?15:12);
+    const upd=()=>{const m=pickMap.getCenter();const e=$('#pkPos');if(e)e.textContent=m.lat.toFixed(5)+', '+m.lng.toFixed(5)};
+    pickMap.on('move',upd);upd();pickMap.invalidateSize()},90);
+  $('#pkCancel').onclick=()=>{$('#ov').classList.remove('on');killPick()};
+  $('#pkSet').onclick=async()=>{if(!pickMap)return;const m=pickMap.getCenter();const o2=placeObj(key);
+    const tag='PIN '+m.lat.toFixed(4)+', '+m.lng.toFixed(4);
+    Object.assign(o2,{lat:m.lat,lon:m.lng,q:tag,label:tag,sub:'MAP POINT',type:'PIN'});save();
+    $('#ov').classList.remove('on');killPick();$$('.place').forEach(paintPlace);$('#cStatus').textContent='';
+    try{const nm=await reverseName(m.lat,m.lng);if(nm&&nm!=='MY LOCATION'){o2.label=nm;o2.q=nm;o2.sub='MAP POINT';save();$$('.place').forEach(paintPlace)}}catch(e){}};
+}
 $$('#v-setup > .card .place').forEach(initPlace);
 function bindField(id,cb){const el=$('#'+id);el.value=S[id]??'';el.addEventListener('input',()=>{S[id]=el.value;save();cb&&cb()})}
 ['date','dep','arr','pax','bars','tmax','rain','tyreF','tyreR','tyreLoad','lpb','reserve','calib'].forEach(id=>bindField(id));
@@ -1453,26 +1565,37 @@ function bindToggle(id,cb){const box=$('#'+id);const paint=()=>[...box.children]
   box.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S[id]=b.dataset.v;save();paint();cb&&cb()})}
 const paintWx=()=>{$('#wxManual').style.display=S.wxMode==='manual'?'block':'none'};
 bindToggle('parked');bindToggle('wxMode',paintWx);bindToggle('theme',applyTheme);bindToggle('voice');bindToggle('aural');paintWx();
+$('#tyEnter').onclick=()=>openTyre(null);
 $('#resetAll').onclick=()=>{if(window._cr){try{localStorage.removeItem(KEY)}catch(e){}location.reload()}else{window._cr=1;$('#resetAll').textContent='TAP AGAIN TO CONFIRM'}};
 
 function routeKeyNow(){return JSON.stringify([S.origin,S.dest,S.wps].flat().map(p=>p&&p.lat!=null?[+p.lat.toFixed(5),+p.lon.toFixed(5)]:null))}
 function missing(){const m=[];if(S.origin.lat==null)m.push('FROM');if(S.dest.lat==null)m.push('TO');if(S.wps.some(w=>w.lat==null))m.push('VIA');if(!S.dep)m.push('DEPART');
   if(S.bars===''||S.bars==null)m.push('FUEL BARS');if(S.wxMode==='manual'&&S.tmax==='')m.push('MAX TEMP');return m}
-async function autoResolve(){for(const key of ['origin','dest',...S.wps.map((w,i)=>'w'+i)]){const o=placeObj(key);if(o.lat==null&&o.q&&o.q.trim().length>=3){const r=await geocode(o.q.trim());if(r[0])Object.assign(o,{lat:r[0].lat,lon:r[0].lon,label:r[0].label,sub:r[0].sub})}}
-  $$('.place').forEach(paintPlace)}
+function unresolved(){return ['origin',...S.wps.map((w,i)=>'w'+i),'dest'].filter(k=>{const o=placeObj(k);return (o.q||'').trim().length>0&&o.lat==null})}
+async function demandPick(){const un=unresolved();if(!un.length)return true;
+  const key=un[0];const el=document.querySelector(`.place[data-p="${key}"]`);
+  const nm=key==='origin'?'FROM':key==='dest'?'TO':'VIA '+(+key.slice(1)+1);
+  $('#cStatus').innerHTML=`<span class="c-a">${nm} NOT CONFIRMED · TAP A RESULT IN THE LIST, OR ⌖ TO PICK ON MAP</span>`;
+  if(el){el.scrollIntoView({behavior:'smooth',block:'center'});if(el._search)await el._search(true)}
+  return false}
 $('#compute').onclick=async()=>{
   const st=$('#cStatus'),steps=$('#cSteps');st.textContent='';
-  if(navigator.onLine)await autoResolve();
+  if(!(await demandPick()))return;
   const m=missing();if(m.length){st.innerHTML='<span class="c-a">ENTER: '+m.join(' · ')+'</span>';return}
   const key=routeKeyNow();
   if(S.route&&S.routeKey===key&&S.route.zones){if(S.wxMode==='auto'&&navigator.onLine&&(!S.route.wx||Date.now()-S.route.wx.at>3*36e5)){await refreshWx()}
     S.checks={};S.live=null;save(true);show('plan');return}
   if(!navigator.onLine){st.innerHTML='<span class="c-r">NO INTERNET · ROUTE NEEDS NETWORK</span>';return}
   const b=$('#compute');b.disabled=true;b.innerHTML='<span class="spin">◐</span> COMPUTING';
-  const lines={};const log=(k,s,x)=>{lines[k]=[s,x];steps.innerHTML=Object.entries(lines).map(([k,[s,x]])=>`<div class="${s==='ok'?'c-g':s==='fail'?'c-a':'c-c'}">${s==='ok'?'✓':s==='fail'?'▲':'◐'} ${k}${x?' · '+x:''}${s==='fail'?' · UNAVAILABLE':''}</div>`).join('')};
+  const lines={};const log=(k,s,x)=>{lines[k]=[s,x];steps.innerHTML=Object.entries(lines).map(([k,[s,x]])=>`<div class="${s==='ok'?'c-g':s==='run'?'c-c':'c-a'}">${s==='ok'?'✓':s==='run'?'◐':'▲'} ${k}${x?' · '+x:''}${s==='fail'?' · UNAVAILABLE':''}</div>`).join('')};
   try{
     const pts=[S.origin,...S.wps,S.dest].map((p,i,a)=>({lat:p.lat,lon:p.lon,label:p.label||p.q,dwell:i>0&&i<a.length-1?num(p.dwell):0}));
     log('ROUTE','run');const r=await osrmRoute(pts);processRoute(r,pts);log('ROUTE','ok',(G.total/1000).toFixed(0)+' km');
+    S.route.snap=(r.__wp||[]).map((w,i)=>({d:Math.round(num(w.distance,0)),name:String(w.name||'').slice(0,28)}));
+    const far=S.route.snap.map((x,i)=>({...x,i})).filter(x=>x.d>700);
+    if(far.length){const nm=i=>i===0?'FROM':i===pts.length-1?'TO':'VIA '+i;
+      S.route.snapWarn=far.map(x=>`${nm(x.i)} IS ${(x.d/1000).toFixed(1)} km FROM THE NEAREST ROAD${x.name?' ('+x.name.toUpperCase()+')':''}`).join(' · ');
+      log('PIN CHECK','warn',far.length+' PIN'+(far.length>1?'S':'')+' FAR FROM ROAD')}else{S.route.snapWarn='';log('PIN CHECK','ok')}
     await enrichRoute(log);S.routeKey=key;S.checks={};S.live=null;save(true);b.disabled=false;b.textContent='COMPUTE PLAN ▸';show('plan');
   }catch(err){log('ROUTE','fail');st.innerHTML='<span class="c-r">ROUTE FAILED · CHECK PLACES / RETRY</span>'}
   finally{b.disabled=false;b.textContent='COMPUTE PLAN ▸'}};
@@ -1483,8 +1606,10 @@ let PLAN=null;
 function ecamHTML(ph,tick=true,mark=false){let curDone=false;return'<div class="ecam">'+ph.items.map((it,i)=>{const key=ph.id+':'+i;const done=tick&&S.checks[key];
   let cur='';if(mark&&it.t==='e'&&!done&&!curDone){cur=' cur';curDone=true}
   if(it.t==='h')return`<div class="sec">${esc(it.text)}</div>`;if(it.t==='m')return`<div class="memo">${esc(it.text)}</div>`;
-  const cls=(it.cls==='a'||it.cls==='r'?' '+it.cls:'')+cur;return`<div class="ec${cls}${done?' done':''}" ${tick?`data-ck="${key}"`:''}><span>${esc(it.k)}</span><span class="d"></span><span class="v ${it.cls==='m'?'m':''}">${esc(it.v)}</span></div>`}).join('')+'</div>'}
-document.addEventListener('click',e=>{const el=e.target.closest('[data-ck]');if(!el)return;const k=el.dataset.ck;if(S.checks[k])delete S.checks[k];else S.checks[k]=1;save();el.classList.toggle('done');
+  const cls=(it.cls==='a'||it.cls==='r'?' '+it.cls:'')+cur;return`<div class="ec${cls}${done?' done':''}" ${tick?`data-ck="${key}"`:''}${it.act?` data-act="${it.act}"`:''}><span>${esc(it.k)}</span><span class="d"></span><span class="v ${it.cls==='m'?'m':''}">${esc(it.v)}</span></div>`}).join('')+'</div>'}
+document.addEventListener('click',e=>{const el=e.target.closest('[data-ck]');if(!el)return;
+  if(el.dataset.act==='tyre'){openTyre(el.dataset.ck);return}
+  const k=el.dataset.ck;if(S.checks[k])delete S.checks[k];else S.checks[k]=1;save();el.classList.toggle('done');
   if(S.tab==='drive'&&PLAN){const y=window.scrollY;paintLive(true);window.scrollTo(0,y)}});
 const SHOWALL={};
 function liveEcam(ph,s,timeMode){
@@ -1496,7 +1621,7 @@ function liveEcam(ph,s,timeMode){
   const isDone=x=>x.items.every(o=>o.it.t!=='e'||S.checks[ph.id+':'+o.i]);
   const row=(o,cur)=>{const it=o.it,key=ph.id+':'+o.i,done=S.checks[key];if(it.t==='m')return`<div class="memo">${esc(it.text)}</div>`;
     const cls=(it.cls==='a'||it.cls==='r'?' '+it.cls:'')+(cur?' cur':'');
-    return`<div class="ec${cls}${done?' done':''}" data-ck="${key}"><span>${esc(it.k)}</span><span class="d"></span><span class="v ${it.cls==='m'?'m':''}">${esc(it.v)}</span></div>`};
+    return`<div class="ec${cls}${done?' done':''}" data-ck="${key}"${it.act?` data-act="${it.act}"`:''}><span>${esc(it.k)}</span><span class="d"></span><span class="v ${it.cls==='m'?'m':''}">${esc(it.v)}</span></div>`};
   const all=SHOWALL[ph.id];let html='';
   if(ph.kind==='zone'){let marked=false;
     vis.forEach(x=>{const done=x.items.filter(o=>o.it.t==='e'&&S.checks[ph.id+':'+o.i]);const open=x.items.filter(o=>!(o.it.t==='e'&&S.checks[ph.id+':'+o.i]));
@@ -1533,6 +1658,7 @@ function renderPlan(){const out=$('#planOut');if(!planValid()){PLAN=null;noPlan(
     <div class="stat"><div class="k">FUEL</div><div class="v ${P.reserveHit?'c-r':'c-g'}">${P.fuelTotal.toFixed(1)} L</div><div class="s ${f0?'c-m':'c-g'}">${f0?'FILL @ KM '+(f0.s/1000).toFixed(f0.s<10000?1:0)+(f0.pump&&!f0.done?' · '+esc(f0.pump.name.slice(0,10)):''):'NO STOP NEEDED'}</div></div>
     <div class="stat"><div class="k">PLANNED km/L</div><div class="v c-g">${P.avgKmpl.toFixed(1)}</div><div class="s c-g">km/L</div></div>
   </div>
+  ${S.route.snapWarn?`<div class="card" style="border-color:var(--a)"><div class="status c-a" style="margin:0">▲ ${esc(S.route.snapWarn)}<br><span class="c-w">CHECK THE PINS ON THE MAP · USE ⌖ ON SETUP TO MOVE THEM</span></div></div>`:''}
   <div class="status c-g">${wxNote}${S.route.pumps&&S.route.pumps.length?' · '+S.route.pumps.length+' PUMPS ON ROUTE':' · <span class="c-a">PUMPS N/A</span>'}${S.route.elev?'':' · <span class="c-a">TERRAIN N/A</span>'}</div>
   <h2>COST INDEX</h2>
   <div class="card"><div class="toggle" id="ciMode"><button data-v="auto" class="${S.ciMode==='auto'?'on':''}">AUTO</button><button data-v="manual" class="${S.ciMode==='manual'?'on':''}">MANUAL</button></div>
@@ -1561,7 +1687,7 @@ function liveFuelLeft(){if(!PLAN||!S.live)return null;const s=LV.s??0;let used=0
   PLAN.phases.forEach(ph=>{if(ph.kind!=='zone')return;const a=Math.max(ph.sStart,from),b=Math.min(ph.sEnd,s);if(b>a)used+=ph.fuel*(b-a)/(ph.sEnd-ph.sStart)});
   return Math.max(0,num(S.live.fuelAtFromS,0)-used)}
 function startDrive(auto){if(!PLAN)PLAN=buildPlan();if(!PLAN)return;
-  S.live={started:Date.now(),routeStart:Date.now(),fuelAtFromS:num(S.bars)*num(S.lpb,2.5),fuelFromS:0,mode:'gps',offset:0,oatAt:0,wpSaid:{},odo:0,fills:[],mpg:[],avgResetS:0,lastReadOdo:0};
+  S.live={started:Date.now(),routeStart:Date.now(),fuelAtFromS:num(S.bars)*num(S.lpb,2.5),fuelFromS:0,mode:'gps',offset:0,oatAt:0,wpSaid:{},odo:0,fills:[],mpg:[],avgResetS:0,lastReadOdo:0,halt:null,halts:[]};
   PLAN=buildPlan();save(true);speak(briefing(auto),true);startGPS();requestWake();LV.phaseId=null;renderDrive(true);setTimeout(liveWx,1500)}
 const sayTime=d=>{const h=d.getHours(),m=d.getMinutes();return (h%12||12)+(m?' '+(m<10?'o '+m:m):' o clock')+(h<12?' A M':' P M')};
 function destName(){const p=S.route.pts[S.route.pts.length-1];return String(p.label||'destination').split(',')[0]}
@@ -1640,13 +1766,15 @@ function zoneSpeech(ph){if(ph.kind!=='zone')return ph.title.toLowerCase();const 
   parts.push('A C '+(cl.ac==='OFF'?'off':cl.ac.toLowerCase()));parts.push(cl.intake==='RECIRC'?'recirculation':'fresh air');parts.push('fan '+cl.blower);
   if(ph.band)parts.push((TYPES[ph.type].cruise?'cruise ':'target ')+ph.band[1]);else parts.push('max '+ph.cap);if(cl.windows!=='UP')parts.push('windows '+cl.windows.toLowerCase());return parts.join('. ')}
 function nowRef(){return Math.max(Date.now(),LV.fix?LV.fix.t:0)}
-function speedWatch(ph){if(!ph||ph.kind!=='zone'||S.aural!=='on'||S.live.mode==='time')return;const lim=(ph.band?ph.band[1]:ph.cap)+5;const v=LV.speed;const now=nowRef();
+function halted(){return !!(S.live&&S.live.halt)}
+function speedWatch(ph){if(halted()||!ph||ph.kind!=='zone'||S.aural!=='on'||S.live.mode==='time')return;const lim=(ph.band?ph.band[1]:ph.cap)+5;const v=LV.speed;const now=nowRef();
   if(v>lim){if(LV.overSince==null)LV.overSince=now;if(now-LV.overSince>=4000&&now-LV.overWarn>((LV.overN||0)<2?15000:45000)){LV.overWarn=now;LV.overN=(LV.overN||0)+1;chime(3,1250);speak('Overspeed. '+(ph.band?'Target '+ph.band[1]:'Limit '+ph.cap),true,true)}}
   else if(v<lim-3){LV.overSince=null;LV.overN=0}}
-function holdWatch(ph){if(!LV.stillSince||LV.hold||!ph)return;if(ph.kind!=='zone')return;if(nowRef()-LV.stillSince<90000)return;
+function holdWatch(ph){if(halted()||!LV.stillSince||LV.hold||!ph)return;if(ph.kind!=='zone')return;if(nowRef()-LV.stillSince<90000)return;
   LV.hold={since:LV.stillSince};chime(1,700);speak('Holding. Engine off if waiting more than one more minute.');lastLiveRenderIdx=-1;paintLive(true)}
 function delayMin(){if(!PLAN||!S.live||LV.s==null)return 0;const eta=Date.now()+remainingMin(LV.s)*paceFactor()*6e4;return (eta-PLAN.eta.getTime())/6e4}
-function delayWatch(){const d=delayMin();const step=d>=10?Math.floor(d/10)*10:0;if(step>LV.delaySaid&&LV.movingMs>120000){LV.delaySaid=step;speak('Running '+step+' minutes behind schedule.')}else if(d<5&&LV.delaySaid){LV.delaySaid=0}}
+function delayWatch(){if(halted())return;const d=delayMin();const step=d>=10?Math.floor(d/10)*10:0;if(step>LV.delaySaid&&LV.movingMs>120000){LV.delaySaid=step;speak('Running '+step+' minutes behind schedule.')}else if(d<5&&LV.delaySaid){LV.delaySaid=0}}
+const fmtHalt=m=>{m=Math.max(0,Math.floor(m));return m<60?m+' MIN':Math.floor(m/60)+'h '+pad2(m%60)};
 function fmtDelay(d){const a=Math.abs(Math.round(d));if(a<2)return'<small class="c-g">ON TIME</small>';const t=Math.floor(a/60)+':'+pad2(a%60);return d>0?`<small class="c-a">+${t}</small>`:`<small class="c-g">−${t}</small>`}
 function liveTick(){if(!PLAN||!S.live)return;const i=currentPhaseIdx();const ph=PLAN.phases[i];
   speedWatch(ph);holdWatch(ph);delayWatch();
@@ -1671,6 +1799,30 @@ function liveTick(){if(!PLAN||!S.live)return;const i=currentPhaseIdx();const ph=
   paintLive()}
 
 /* ============================== DRIVE VIEW ============================== */
+function haltMin(){const h=S.live&&S.live.halt;return h?(Date.now()-h.since)/6e4:0}
+function startHalt(){if(!S.live)return;S.live.halt={since:Date.now(),s:LV.s||0};
+  if(LV.hold){S.live.halt.since=LV.hold.since;LV.hold=null}
+  LV.delaySaid=0;save(true);chime(1,700);speak('Halt. Engine off, parking brake set. Tap resume when you start again.');lastLiveRenderIdx=-1;renderDrive(true)}
+async function endHalt(){if(!S.live||!S.live.halt)return;const h=S.live.halt;const mins=(Date.now()-h.since)/6e4;
+  S.live.halts=S.live.halts||[];S.live.halts.push({s:h.s,min:Math.round(mins),at:h.since});
+  S.live.halt=null;LV.stillSince=null;LV.delaySaid=0;save(true);
+  const long=mins>=25;
+  if(long&&navigator.onLine&&S.wxMode==='auto'){try{await refreshWx()}catch(e){}}
+  PLAN=buildPlan();lastLiveRenderIdx=-1;
+  const eta=new Date(Date.now()+remainingMin(LV.s||0)*paceFactor()*6e4);
+  speak('Resuming after '+Math.round(mins)+' minute'+(Math.round(mins)===1?'':'s')+'. New arrival '+hm(eta)+'. Idle thirty seconds, then first gear.');
+  renderDrive(true)}
+function haltPanel(){const el=haltMin();const eta=new Date(Date.now()+remainingMin(LV.s||0)*paceFactor()*6e4);
+  const items=[H('ON GROUND'),E('ENGINE','OFF'),E('PARKING BRAKE','SET'),E('GEAR','1st'),E('PARK','SHADE'),
+    ...(el>=20?[E('TYRES','VISUAL CHECK')]:[]),...(el>=45?[E('TYRE PRESSURE','CHECK WHEN COOL','m','tyre')]:[]),
+    H('BEFORE RESUMING'),E('DOORS · BELTS','CLOSED · FASTENED'),E('IDLE','30 s','m'),E('GEAR','1st'),E('PARKING BRAKE','RELEASE'),E('BRAKE LT','OUT')];
+  return`<div class="haltb"><div class="l c-a">HALT · ENGINE OFF</div><div class="t">${fmtHalt(el)}</div>
+    <div class="l c-w">ARRIVAL NOW ${hm(eta)} · ${fmtDelay((eta-PLAN.eta)/6e4).replace(/<[^>]+>/g,'')}</div></div>
+    <button class="btn fill" id="lvResume">RESUME ▸</button><div style="height:8px"></div>${ecamHTML({id:'halt',items})}`}
+document.addEventListener('click',e=>{const t=e.target.closest('#lvHalt,#lvResume,#askAvg');if(!t)return;
+  if(t.id==='lvHalt')startHalt();
+  else if(t.id==='lvResume'){t.disabled=true;endHalt()}
+  else{const el=$('#lvAvg');if(el){el.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>el.focus(),400)}}});
 function requestWake(){if(!('wakeLock'in navigator))return;navigator.wakeLock.request('screen').then(w=>{wakeLock=w;w.addEventListener('release',()=>{wakeLock=null})}).catch(()=>{})}
 function releaseWake(){try{wakeLock&&wakeLock.release()}catch(e){}wakeLock=null}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&S.live){requestWake();if(S.live.mode!=='time'&&watchId==null)startGPS()}});
@@ -1706,9 +1858,10 @@ function paintLive(full){const top=$('#dTop'),out=$('#liveOut');if(!PLAN)return;
     if(timeMode)topH+=`<div class="banner a">NO GPS · TIME MODE</div>`;
     else if(!LV.gpsOK||Date.now()-LV.lastFixAt>15000)topH+=`<div class="banner a"><span class="spin">◐</span> ACQUIRING GPS</div>`;
     else if(LV.off>=3)topH+=`<div class="banner a">OFF ROUTE${navigator.onLine?' · RECALCULATING':' · NO NETWORK'}</div>`;
-    if(!timeMode&&s!=null){const nm=nextManeuver(s);if(nm){const d=nm.st.s-s;const after=nextManeuver(nm.st.s+1);
+    if(halted())topH+=haltPanel();
+    if(!halted()&&!timeMode&&s!=null){const nm=nextManeuver(s);if(nm){const d=nm.st.s-s;const after=nextManeuver(nm.st.s+1);
       topH+=`<div class="navb"><div class="arrow">${arrowSVG(nm.st)}</div><div><div class="dist">${fmtKm(d)}</div><div class="ins">${esc(instr(nm.st))}</div>${after&&after.st.s-nm.st.s<600?`<div class="then">THEN ${esc(instr(after.st))}</div>`:''}</div></div>`}}
-    const band=ph&&ph.band;const v=Math.round(LV.speed||0);let cls='';if(!timeMode&&ph&&ph.kind==='zone'){const hi=band?band[1]:ph.cap;if(v>(band?hi+15:ph.cap+10))cls='r';else if(v>hi+(band?4:0))cls='a'}
+    if(!halted()){const band=ph&&ph.band;const v=Math.round(LV.speed||0);let cls='';if(!timeMode&&ph&&ph.kind==='zone'){const hi=band?band[1]:ph.cap;if(v>(band?hi+15:ph.cap+10))cls='r';else if(v>hi+(band?4:0))cls='a'}
     const left=s!=null?Math.max(0,G.total-s):null;
     const pace=paceFactor();const remMin=remainingMin(s)*pace;const eta=new Date(Date.now()+remMin*6e4);
     const fuel=liveFuelLeft();const np=s!=null&&S.route.pumps?S.route.pumps.find(p=>p.s>s+50):null;
@@ -1716,11 +1869,11 @@ function paintLive(full){const top=$('#dTop'),out=$('#liveOut');if(!PLAN)return;
     if(LV.hold){const el=Math.max(0,(nowRef()-LV.hold.since)/1000);const T=oat?oat.T:(ph&&ph.cl?num(ph.sub.match(/(\d+)°C/)?.[1],28):28);
       const hi=[E('ENGINE','OFF IF > 1 MORE MIN'),E('PARKING BRAKE','SET'),E('GEAR','NEUTRAL'),...(T>=30?[E('AC','LOW · RECIRC'),E('BLOWER','1')]:[E('AC','OFF'),E('WINDOWS','DOWN')]),E('MOVING AGAIN','IDLE 10 s · 1st')];
       topH+=`<div class="banner a">HOLD · ${Math.floor(el/60)}:${pad2(Math.floor(el%60))} · DELAY ${fmtDelay(delayMin()).replace(/<[^>]+>/g,'')}</div>`+ecamHTML({id:'hold',items:hi})}
-    const odoKm=(S.live.odo||0)/1000;if(!timeMode&&LV.speed<3&&(odoKm-(S.live.lastReadOdo||0)/1000>=25||(ph&&(ph.kind==='stop'||ph.kind==='fuel'))))topH+=`<button class="btn" id="askAvg" style="margin-bottom:8px">ENTER CAR AVG km/L ▸</button>`;
-    topH+=nowBox();
+    const odoKm=(S.live.odo||0)/1000;if(!halted()&&!timeMode&&LV.speed<3&&(odoKm-(S.live.lastReadOdo||0)/1000>=25||(ph&&(ph.kind==='stop'||ph.kind==='fuel'))))topH+=`<button class="btn" id="askAvg" style="margin-bottom:8px">ENTER CAR AVG km/L ▸</button>`;
+    if(!halted())topH+=nowBox();
     topH+=`<div class="spd"><div class="box"><div class="u">SPEED</div><div class="big ${cls}">${timeMode?'--':v}</div><div class="u">km/h</div></div>
       <div class="box"><div class="u">${ph&&ph.kind==='zone'?(TYPES[ph.type].cruise?'CRUISE':band?'TARGET':'MAX · AVG ~'+Math.round(ph.sp.avg)):'PHASE'}</div><div class="tgt">${band?band[0]+'–'+band[1]:ph&&ph.cap?'≤ '+ph.cap:ph&&ph.kind!=='zone'?'STOP':'—'}</div><div class="u c-c">${ph&&ph.cl?'AC '+ph.cl.ac+' · '+ph.cl.intake+' · FAN '+ph.cl.blower:''}</div></div></div>
-      <div class="strip"><div>LEFT<b>${left!=null?fmtKm(left):'—'}</b></div><div>ETA<b class="${PLAN.arr&&eta>PLAN.arr?'c-a':''}">${s!=null?hm(eta):hm(PLAN.eta)}</b>${s!=null?fmtDelay((eta-PLAN.eta)/6e4):''}</div><div>FUEL<b class="${fuel!=null&&fuel<num(S.reserve,2)?'c-r':''}">${fuel!=null?fuel.toFixed(1)+' L':'—'}</b></div><div>OAT<b>${oat?Math.round(oat.T)+'°C':'—'}</b></div><div>PUMP<b>${np?fmtKm(np.s-s):'—'}</b></div></div>`}
+      <div class="strip"><div>LEFT<b>${left!=null?fmtKm(left):'—'}</b></div><div>ETA<b class="${PLAN.arr&&eta>PLAN.arr?'c-a':''}">${s!=null?hm(eta):hm(PLAN.eta)}</b>${s!=null?fmtDelay((eta-PLAN.eta)/6e4):''}</div><div>FUEL<b class="${fuel!=null&&fuel<num(S.reserve,2)?'c-r':''}">${fuel!=null?fuel.toFixed(1)+' L':'—'}</b></div><div>OAT<b>${oat?Math.round(oat.T)+'°C':'—'}</b></div><div>PUMP<b>${np?fmtKm(np.s-s):'—'}</b></div></div>`}}
   top.innerHTML=topH;
   const sig=(()=>{if(!live)return'';const nx2=PLAN.phases[i+1];let n='';if(nx2&&s!=null&&!timeMode){const d=(nx2.sStart??nx2.s)-s;n=d<=2000?'N':'F';const e=$('#nxDist');if(e)e.textContent=fmtKm(Math.max(0,d))}
     const trig=(ph.items||[]).filter(x=>x.t==='h'&&x.near).map(x=>s!=null&&ph.sEnd!=null&&(ph.sEnd-s)<=x.near?1:0).join('');return n+trig})();
@@ -1746,12 +1899,12 @@ function paintLive(full){const top=$('#dTop'),out=$('#liveOut');if(!PLAN)return;
   <div class="card"><div class="row" style="grid-template-columns:1fr 1fr auto;align-items:end"><div><label>Car AVG km/L</label><input id="lvAvg" type="number" step="0.1" inputmode="decimal" class="opt" value="" placeholder="--.-"></div>
     <div style="font:13px var(--mono)">PLAN<br><span class="c-g" style="font-size:20px">${(live?planAvgRange(S.live.avgResetS||0,s??0):planAvgTo(i)).toFixed(1)}</span></div>${live?'<button class="btn sm" id="lvAvgGo">ENTER</button>':''}</div>
     <div id="lvAvgOut" class="status"></div></div>
-  <div class="btns">${live?`<button class="btn sm" id="lvFill2">REFUELLED HERE</button><button class="btn sm" id="lvMode">${timeMode?'USE GPS':'TIME MODE'}</button><button class="btn sm r" id="lvStop">END DRIVE</button>`:''}<button class="btn sm" id="lvClear">CLEAR TICKS</button></div>`;
+  <div class="btns">${live&&!halted()?`<button class="btn a sm" id="lvHalt">HALT</button>`:''}${live?`<button class="btn sm" id="lvFill2">REFUELLED HERE</button><button class="btn sm" id="lvMode">${timeMode?'USE GPS':'TIME MODE'}</button><button class="btn sm r" id="lvStop">END DRIVE</button>`:''}<button class="btn sm" id="lvClear">CLEAR TICKS</button></div>`;
   const bS=$('#lvStart');if(bS)bS.onclick=startDrive;
   window._fill=(onb)=>fill(onb);
   const fill=(onb)=>{if(!S.live)return;S.live.fuelAtFromS=onb!=null?onb:num(S.tank,35);S.live.fuelFromS=LV.s||0;S.live.filledAtS=Math.max(1,LV.s||0);LV.stopLatch=null;PLAN=buildPlan();save(true);LV.phaseId=null;renderDrive(true)};
   const bF=$('#lvFilled');if(bF)bF.onclick=()=>openRefuel(true);const bF2=$('#lvFill2');if(bF2)bF2.onclick=()=>openRefuel(false);
-  const aA=$('#askAvg');if(aA)aA.onclick=()=>{const el=$('#lvAvg');if(el){el.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>el.focus(),400)}};
+
   const bM=$('#lvMode');if(bM)bM.onclick=()=>{if(S.live.mode==='time'){S.live.mode='gps';startGPS()}else{S.live.mode='time';S.live.offset=Date.now()-PLAN.phases[i].start.getTime()}save();renderDrive(true)};
   const bX=$('#lvStop');if(bX)bX.onclick=()=>{if(window._stopc){window._stopc=0;stopDrive()}else{window._stopc=1;bX.textContent='TAP AGAIN'}};
   $('#lvClear').onclick=()=>{S.checks={};save();renderDrive(true)};
@@ -1833,10 +1986,11 @@ const ALERTS=[
 $('#alList').innerHTML=ALERTS.map(q=>`<details class="al-item"><summary>▲ ${esc(q.title)}</summary>${ecamHTML({id:'',items:q.items},false)}</details>`).join('');
 function openAlert(k){const q=ALERTS[k];$('#ovSheet').innerHTML=`<h3>▲ ${esc(q.title)}</h3>${ecamHTML({id:'',items:q.items},false)}<div style="height:12px"></div><button class="btn a" id="ovClose">CLOSE</button>`;
   $('#ov').classList.add('on');$('#ovClose').onclick=()=>$('#ov').classList.remove('on')}
-$('#ov').addEventListener('click',e=>{if(e.target.id==='ov')$('#ov').classList.remove('on')});
+$('#ov').addEventListener('click',e=>{if(e.target.id==='ov'){$('#ov').classList.remove('on');killPick()}});
 
 /* ============================== LOOPS & INIT ============================== */
 setInterval(()=>{const n=new Date();$('#clk').textContent=pad2(n.getHours())+':'+pad2(n.getMinutes())+':'+pad2(n.getSeconds());gpsDot();
+  if(S.tab==='drive'&&halted()){const el=haltMin();const t=document.querySelector('#dTop .haltb .t');if(t)t.textContent=fmtHalt(el)}
   if(S.tab==='drive'&&PLAN&&S.live&&S.live.mode==='time'){liveTick()}},1000);
 setInterval(()=>{if(S.live){liveWx(false);if(S.wxMode==='auto'&&navigator.onLine&&S.route&&S.route.wx&&Date.now()-S.route.wx.at>45*6e4){S.route.wx.at=Date.now();refreshWx().then(()=>{PLAN=buildPlan();[MAPS.plan,MAPS.drive].forEach(m=>m&&drawWx(m))})}}},60000);
 setInterval(()=>{applyTheme();const ae=document.activeElement;if(S.tab==='drive'&&PLAN&&!$('#ov').classList.contains('on')&&!(ae&&ae.tagName==='INPUT'))paintLive(false)},30000);
