@@ -1859,6 +1859,10 @@ function paintLive(full){const top=$('#dTop'),out=$('#liveOut');if(!PLAN)return;
     else if(!LV.gpsOK||Date.now()-LV.lastFixAt>15000)topH+=`<div class="banner a"><span class="spin">◐</span> ACQUIRING GPS</div>`;
     else if(LV.off>=3)topH+=`<div class="banner a">OFF ROUTE${navigator.onLine?' · RECALCULATING':' · NO NETWORK'}</div>`;
     if(halted())topH+=haltPanel();
+    const odoKm=(S.live.odo||0)/1000;const avgDue=!timeMode&&LV.speed<3&&(odoKm-(S.live.lastReadOdo||0)/1000>=25||halted()||(ph&&(ph.kind==='stop'||ph.kind==='fuel')));
+    if(avgDue){topH+=`<button class="btn" id="askAvg" style="margin-bottom:8px">ENTER CAR AVG km/L ▸</button>`;
+      const key=halted()?'halt'+S.live.halt.since:(ph&&(ph.kind==='stop'||ph.kind==='fuel'))?ph.id:'w'+Math.floor(odoKm/25);
+      if(LV.avgNudged!==key&&LV.stillSince&&nowRef()-LV.stillSince>=10000){LV.avgNudged=key;chime(1,900);speak('Stopped. Enter average mileage when convenient.')}}
     if(!halted()&&!timeMode&&s!=null){const nm=nextManeuver(s);if(nm){const d=nm.st.s-s;const after=nextManeuver(nm.st.s+1);
       topH+=`<div class="navb"><div class="arrow">${arrowSVG(nm.st)}</div><div><div class="dist">${fmtKm(d)}</div><div class="ins">${esc(instr(nm.st))}</div>${after&&after.st.s-nm.st.s<600?`<div class="then">THEN ${esc(instr(after.st))}</div>`:''}</div></div>`}}
     if(!halted()){const band=ph&&ph.band;const v=Math.round(LV.speed||0);let cls='';if(!timeMode&&ph&&ph.kind==='zone'){const hi=band?band[1]:ph.cap;if(v>(band?hi+15:ph.cap+10))cls='r';else if(v>hi+(band?4:0))cls='a'}
@@ -1869,7 +1873,6 @@ function paintLive(full){const top=$('#dTop'),out=$('#liveOut');if(!PLAN)return;
     if(LV.hold){const el=Math.max(0,(nowRef()-LV.hold.since)/1000);const T=oat?oat.T:(ph&&ph.cl?num(ph.sub.match(/(\d+)°C/)?.[1],28):28);
       const hi=[E('ENGINE','OFF IF > 1 MORE MIN'),E('PARKING BRAKE','SET'),E('GEAR','NEUTRAL'),...(T>=30?[E('AC','LOW · RECIRC'),E('BLOWER','1')]:[E('AC','OFF'),E('WINDOWS','DOWN')]),E('MOVING AGAIN','IDLE 10 s · 1st')];
       topH+=`<div class="banner a">HOLD · ${Math.floor(el/60)}:${pad2(Math.floor(el%60))} · DELAY ${fmtDelay(delayMin()).replace(/<[^>]+>/g,'')}</div>`+ecamHTML({id:'hold',items:hi})}
-    const odoKm=(S.live.odo||0)/1000;if(!halted()&&!timeMode&&LV.speed<3&&(odoKm-(S.live.lastReadOdo||0)/1000>=25||(ph&&(ph.kind==='stop'||ph.kind==='fuel'))))topH+=`<button class="btn" id="askAvg" style="margin-bottom:8px">ENTER CAR AVG km/L ▸</button>`;
     if(!halted())topH+=nowBox();
     topH+=`<div class="spd"><div class="box"><div class="u">SPEED</div><div class="big ${cls}">${timeMode?'--':v}</div><div class="u">km/h</div></div>
       <div class="box"><div class="u">${ph&&ph.kind==='zone'?(TYPES[ph.type].cruise?'CRUISE':band?'TARGET':'MAX · AVG ~'+Math.round(ph.sp.avg)):'PHASE'}</div><div class="tgt">${band?band[0]+'–'+band[1]:ph&&ph.cap?'≤ '+ph.cap:ph&&ph.kind!=='zone'?'STOP':'—'}</div><div class="u c-c">${ph&&ph.cl?'AC '+ph.cl.ac+' · '+ph.cl.intake+' · FAN '+ph.cl.blower:''}</div></div></div>
