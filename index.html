@@ -791,6 +791,12 @@ input.opt::placeholder{color:var(--dim);opacity:.6}
 .strip small{display:block;font-size:10px;font-weight:700}
 .spd .big.r{animation:blink 1s steps(2) infinite}@keyframes blink{50%{opacity:.35}}
 .hist{font:12px var(--mono);margin-top:6px}
+.sec.ok{color:var(--g);text-decoration:none}
+.more{font:12px var(--mono);color:var(--w);opacity:.6;padding:8px 0 2px}
+.fold{font:13px var(--mono);color:var(--g);padding:6px 0;cursor:pointer}
+.ph.now{border:1px solid var(--g);border-radius:10px;padding:8px}
+.ph.now::before{background:var(--g)}
+.tlmore{font:12px var(--mono);color:var(--g);margin:2px 0 10px;cursor:pointer}
 .sheet .row{margin-bottom:10px}
 .live-top{background:var(--ecam);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
 .live-k{font:11px var(--mono);letter-spacing:.12em}
@@ -1214,7 +1220,7 @@ function kmplFor(type,sp,cl,rain,full){const t=TYPES[type];let b=t.kmpl;const dn
 function litresFor(type,km,dz,kmpl){let l=km/kmpl;if(!type.startsWith('ghat')){if(dz>0)l+=dz*.0009;else l-=Math.min(l*.3,-dz*.0004)}return Math.max(.005,l)}
 
 /* ============================== PLAN ============================== */
-const E=(k,v,cls)=>({t:'e',k,v,cls:cls||''});const H=text=>({t:'h',text});const M=text=>({t:'m',text});
+const E=(k,v,cls)=>({t:'e',k,v,cls:cls||''});const H=(text,o)=>Object.assign({t:'h',text},o||{});const M=text=>({t:'m',text});
 function depDate(){if(S.live&&S.live.routeStart)return new Date(S.live.routeStart);return new Date(S.date+'T'+(S.dep||'07:00'))}
 function arrDate(){if(!S.arr)return null;let a=new Date(S.date+'T'+S.arr);const d0=new Date(S.date+'T'+(S.dep||'07:00'));if(a<=d0)a=new Date(a.getTime()+864e5);return a}
 function wpDwell(li){const p=S.route.pts[li+1];return num(p&&p.dwell)}
@@ -1266,7 +1272,7 @@ function simulate(ci,stops,items){
     }
     const nz=Z[zi+1];
     if(nz&&nz.leg!==z0.leg){const dwell=wpDwell(z0.leg);const pt=S.route.pts[z0.leg+1];
-      if(items){const last=phases[phases.length-1];if(last&&last.cl&&last.cl.ac!=='OFF')last.items.push(H('BEFORE STOP'),E('1 km BEFORE','AC OFF · BLOWER 2'))}
+      if(items){const last=phases[phases.length-1];if(last&&last.cl&&last.cl.ac!=='OFF')last.items.push(H('BEFORE STOP',{near:2500}),E('1 km BEFORE','AC OFF · BLOWER 2'))}
       if(dwell>0){const s0=new Date(t);t=new Date(t.getTime()+dwell*6e4);
         if(items)phases.push({id:'w'+z0.leg,kind:'stop',title:'STOP · '+String(pt.label||'VIA').toUpperCase().slice(0,30),sub:dwell+' MIN',s:z0.s1,sStart:z0.s1,sEnd:z0.s1,lat:pt.lat,lon:pt.lon,start:s0,end:new Date(t),
           chips:[{t:'ENGINE OFF',c:''}],items:[H('ON GROUND'),E('ENGINE','OFF'),E('PARKING BRAKE','SET'),E('GEAR','1st'),E('PARK','SHADE'),E('TYRES','VISUAL'),
@@ -1332,7 +1338,7 @@ function buildPlan(){
     E('PARKING BRAKE','RELEASE FULLY'),E('BRAKE LT','OUT'),E('BRAKE LT STAYS ON','DO NOT DRIVE','r'),E('DRIVE TAB','START DRIVE'));
   pre.chips=[{t:f0?(f0.s<3000?'FUEL FIRST':'FUEL @ KM '+(f0.s/1000).toFixed(0)):'FUEL OK',c:f0?'m':'g'},{t:'IDLE 30 s',c:'m'},{t:'BRAKE LT',c:''}];
   // prep before climbs
-  phases.forEach((ph,i)=>{const nx=phases[i+1];if(ph.kind==='zone'&&nx&&nx.kind==='zone'&&nx.cl&&nx.cl.climbOff)ph.items.push(H('CLIMB AHEAD'),E('LAST 3 km','AC MAX · RECIRC · BLOWER 3'),E('FOOT OF CLIMB','AC OFF','a'))});
+  phases.forEach((ph,i)=>{const nx=phases[i+1];if(ph.kind==='zone'&&nx&&nx.kind==='zone'&&nx.cl&&nx.cl.climbOff)ph.items.push(H('CLIMB AHEAD',{near:3500}),E('LAST 3 km','AC MAX · RECIRC · BLOWER 3'),E('FOOT OF CLIMB','AC OFF','a'))});
   const last=S.route.pts[S.route.pts.length-1];
   const arr={id:'arr',kind:'arr',title:'ARRIVAL · '+String(last.label||'DESTINATION').toUpperCase().slice(0,30),sub:'SHUTDOWN',s:G.total,sStart:G.total,sEnd:G.total+1,lat:last.lat,lon:last.lon,start:P.eta,end:new Date(P.eta.getTime()+10*6e4),chips:[{t:'SHUTDOWN',c:'g'}],items:[
     H('LAST 2 km'),E('AC','OFF'),E('BLOWER','2'),E('INTAKE','FRESH'),H('PARKED'),E('AVG km/L','NOTE → DRIVE TAB','m'),E('TRIP A','NOTE'),E('PARKING BRAKE','SET FULLY'),E('GEAR','1st · R ON SLOPE'),E('DRY GRASS UNDER CAR','AVOID','a')]};
@@ -1480,8 +1486,41 @@ function ecamHTML(ph,tick=true,mark=false){let curDone=false;return'<div class="
   const cls=(it.cls==='a'||it.cls==='r'?' '+it.cls:'')+cur;return`<div class="ec${cls}${done?' done':''}" ${tick?`data-ck="${key}"`:''}><span>${esc(it.k)}</span><span class="d"></span><span class="v ${it.cls==='m'?'m':''}">${esc(it.v)}</span></div>`}).join('')+'</div>'}
 document.addEventListener('click',e=>{const el=e.target.closest('[data-ck]');if(!el)return;const k=el.dataset.ck;if(S.checks[k])delete S.checks[k];else S.checks[k]=1;save();el.classList.toggle('done');
   if(S.tab==='drive'&&PLAN){const y=window.scrollY;paintLive(true);window.scrollTo(0,y)}});
+const SHOWALL={};
+function liveEcam(ph,s,timeMode){
+  const secs=[];let cur={h:null,items:[]};secs.push(cur);
+  ph.items.forEach((it,i)=>{if(it.t==='h'){cur={h:it,items:[]};secs.push(cur)}else cur.items.push({it,i})});
+  const vis=secs.filter(x=>{if(!x.h&&!x.items.length)return false;if(!x.h||!x.h.near)return true;
+    if(timeMode){const left=(ph.end-Date.now()+num(S.live&&S.live.offset))/6e4;return left<=5}
+    return s!=null&&ph.sEnd!=null&&(ph.sEnd-s)<=x.h.near});
+  const isDone=x=>x.items.every(o=>o.it.t!=='e'||S.checks[ph.id+':'+o.i]);
+  const row=(o,cur)=>{const it=o.it,key=ph.id+':'+o.i,done=S.checks[key];if(it.t==='m')return`<div class="memo">${esc(it.text)}</div>`;
+    const cls=(it.cls==='a'||it.cls==='r'?' '+it.cls:'')+(cur?' cur':'');
+    return`<div class="ec${cls}${done?' done':''}" data-ck="${key}"><span>${esc(it.k)}</span><span class="d"></span><span class="v ${it.cls==='m'?'m':''}">${esc(it.v)}</span></div>`};
+  const all=SHOWALL[ph.id];let html='';
+  if(ph.kind==='zone'){let marked=false;
+    vis.forEach(x=>{const done=x.items.filter(o=>o.it.t==='e'&&S.checks[ph.id+':'+o.i]);const open=x.items.filter(o=>!(o.it.t==='e'&&S.checks[ph.id+':'+o.i]));
+      if(x.h)html+=`<div class="sec${!open.length?' ok':''}">${!open.length?'✓ ':''}${esc(x.h.text)}</div>`;
+      if(all){x.items.forEach(o=>{const c=!marked&&o.it.t==='e'&&!S.checks[ph.id+':'+o.i];if(c)marked=true;html+=row(o,c)});return}
+      open.forEach(o=>{const c=!marked&&o.it.t==='e';if(c)marked=true;html+=row(o,c)});
+      if(done.length&&open.length)html+=`<div class="fold" data-all="${ph.id}">✓ ${done.length} DONE</div>`});
+  }else{
+    let active=vis.findIndex(x=>!isDone(x));if(active<0)active=vis.length;
+    vis.forEach((x,k)=>{
+      if(k<active&&!all){if(x.h)html+=`<div class="sec ok" data-all="${ph.id}">✓ ${esc(x.h.text)}</div>`;return}
+      if(k>active&&!all)return;
+      if(x.h)html+=`<div class="sec">${esc(x.h.text)}</div>`;let marked=false;
+      x.items.forEach(o=>{const c=!marked&&o.it.t==='e'&&!S.checks[ph.id+':'+o.i];if(c)marked=true;html+=row(o,c)})});
+    const rest=vis.slice(active+1).filter(x=>x.h);
+    if(!all&&rest.length)html+=`<div class="more">▸ THEN ${esc(rest[0].h.text)}${rest.length>1?' +'+(rest.length-1)+' MORE':''}</div>`;
+    if(active>=vis.length)html+=`<div class="sec ok">✓ ${esc(ph.title.split(' · ')[0])} COMPLETE</div>`;
+  }
+  html+=`<div class="more" data-all="${ph.id}" style="cursor:pointer">${all?'▴ SHOW LESS':'▾ SHOW ALL ITEMS'}</div>`;
+  return'<div class="ecam">'+html+'</div>'}
+document.addEventListener('click',e=>{const el=e.target.closest('[data-all]');if(!el)return;const id=el.dataset.all;SHOWALL[id]=!SHOWALL[id];if(S.tab==='drive'&&PLAN){const y=window.scrollY;paintLive(true);window.scrollTo(0,y)}});
 function noPlan(el){el.innerHTML='<div class="empty">NO ROUTE<br><br>SETUP → COMPUTE PLAN</div>'}
 function planValid(){return S.route&&S.route.zones&&S.routeKey===routeKeyNow()}
+let PLANALL=false;
 function renderPlan(){const out=$('#planOut');if(!planValid()){PLAN=null;noPlan(out);return}
   PLAN=buildPlan();if(!PLAN){noPlan(out);return}const P=PLAN;const late=P.arr?(P.eta-P.arr)/6e4:null;const f0=P.stops[0];
   const wxNote=S.wxMode==='auto'?(S.route.wx?'FORECAST '+hm(new Date(S.route.wx.at)):'FORECAST N/A · MANUAL MODEL'):'MANUAL WEATHER';
@@ -1502,10 +1541,13 @@ function renderPlan(){const out=$('#planOut');if(!planValid()){PLAN=null;noPlan(
     ${P.solved.late!=null&&P.solved.late>2&&S.ciMode==='auto'?`<div class="status c-a">ARRIVAL NOT POSSIBLE · LEAVE ${fmtDur(P.solved.late)} EARLIER</div>`:''}</div>
   ${S.route.pumps&&S.route.pumps.length?`<h2>PUMPS NEAR FUEL STOP</h2><div class="card pumps">${pumpsNear(f0?f0.s:0).map(p=>`<div><span>${esc(p.name)}</span><span class="${f0&&p.s===f0.s?'c-m':''}">KM ${(p.s/1000).toFixed(1)}</span></div>`).join('')}</div>`:''}
   <h2>TIMELINE</h2>
-  <div class="tl">${P.phases.map(ph=>`<div class="ph ${ph.kind}"><div class="ph-h"><div><div class="ph-t">${esc(ph.title)}</div><div class="ph-s">${esc(ph.sub)}${ph.fuel?` · ${ph.fuel.toFixed(1)} L`:''}</div>
+  ${(()=>{const ci=S.live?currentPhaseIdx():0;const show=PLANALL?P.phases.map((p,k)=>k):[ci,ci+1].filter(k=>k<P.phases.length);
+    const done=ci;const hidden=P.phases.length-show.length-(PLANALL?0:done);
+    return (!PLANALL&&done?`<div class="tlmore" data-tl="1">✓ ${done} PART${done>1?'S':''} DONE</div>`:'')+`<div class="tl">${show.map(k=>{const ph=P.phases[k];return `<div class="ph ${ph.kind}${k===ci&&S.live?' now open':''}"><div class="ph-h"><div><div class="ph-t">${esc(ph.title)}</div><div class="ph-s">${esc(ph.sub)}${ph.fuel?` · ${ph.fuel.toFixed(1)} L`:''}</div>
       <div class="chips">${(ph.chips||[]).map(c=>`<span class="chip ${c.c}">${esc(c.t)}</span>`).join('')}</div></div><div class="ph-time">${hm(ph.start)}<small>${fmtDur((ph.end-ph.start)/6e4)}</small></div></div>
-      <div class="ph-body">${ecamHTML(ph)}</div></div>`).join('')}</div>
+      <div class="ph-body">${ecamHTML(ph)}</div></div>`}).join('')}</div>`+(hidden>0?`<div class="tlmore" data-tl="1">▾ SHOW REMAINING ${hidden} PARTS</div>`:PLANALL?`<div class="tlmore" data-tl="1">▴ SHOW LESS</div>`:'')})()}
   <div style="height:12px"></div><button class="btn g" id="goLive">DRIVE ▸</button>`;
+  out.querySelectorAll('[data-tl]').forEach(b=>b.onclick=()=>{PLANALL=!PLANALL;const y=window.scrollY;renderPlan();window.scrollTo(0,y)});
   out.querySelectorAll('.ph-h').forEach(h=>h.onclick=()=>h.parentElement.classList.toggle('open'));
   $('#ciMode').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.ciMode=b.dataset.v;if(S.ciMode==='manual')S.ci=PLAN.ci;save();renderPlan()};
   const r=$('#ciR');r.oninput=()=>{S.ci=+r.value;save()};r.onchange=()=>renderPlan();$('#goLive').onclick=()=>show('drive');
@@ -1680,9 +1722,12 @@ function paintLive(full){const top=$('#dTop'),out=$('#liveOut');if(!PLAN)return;
       <div class="box"><div class="u">${ph&&ph.kind==='zone'?(TYPES[ph.type].cruise?'CRUISE':band?'TARGET':'MAX · AVG ~'+Math.round(ph.sp.avg)):'PHASE'}</div><div class="tgt">${band?band[0]+'–'+band[1]:ph&&ph.cap?'≤ '+ph.cap:ph&&ph.kind!=='zone'?'STOP':'—'}</div><div class="u c-c">${ph&&ph.cl?'AC '+ph.cl.ac+' · '+ph.cl.intake+' · FAN '+ph.cl.blower:''}</div></div></div>
       <div class="strip"><div>LEFT<b>${left!=null?fmtKm(left):'—'}</b></div><div>ETA<b class="${PLAN.arr&&eta>PLAN.arr?'c-a':''}">${s!=null?hm(eta):hm(PLAN.eta)}</b>${s!=null?fmtDelay((eta-PLAN.eta)/6e4):''}</div><div>FUEL<b class="${fuel!=null&&fuel<num(S.reserve,2)?'c-r':''}">${fuel!=null?fuel.toFixed(1)+' L':'—'}</b></div><div>OAT<b>${oat?Math.round(oat.T)+'°C':'—'}</b></div><div>PUMP<b>${np?fmtKm(np.s-s):'—'}</b></div></div>`}
   top.innerHTML=topH;
-  if(!full&&i===lastLiveRenderIdx)return;
+  const sig=(()=>{if(!live)return'';const nx2=PLAN.phases[i+1];let n='';if(nx2&&s!=null&&!timeMode){const d=(nx2.sStart??nx2.s)-s;n=d<=2000?'N':'F';const e=$('#nxDist');if(e)e.textContent=fmtKm(Math.max(0,d))}
+    const trig=(ph.items||[]).filter(x=>x.t==='h'&&x.near).map(x=>s!=null&&ph.sEnd!=null&&(ph.sEnd-s)<=x.near?1:0).join('');return n+trig})();
+  if(!full&&i===lastLiveRenderIdx&&sig===lastSig)return;lastSig=sig;
   lastLiveRenderIdx=i;
   const prep=nx?nx.items.filter(x=>x.t==='e').slice(0,4):[];
+  const near=(()=>{if(!nx)return false;if(!live)return i===0;if(timeMode)return (nx.start-Date.now()+num(S.live.offset))/6e4<=5;const d=(nx.sStart??nx.s)-(s??0);return s!=null&&d<=2000})();
   const distNext=nx&&s!=null&&!timeMode?((nx.sStart??nx.s)-s):null;
   out.innerHTML=`
   <div style="height:8px"></div>
@@ -1693,10 +1738,8 @@ function paintLive(full){const top=$('#dTop'),out=$('#liveOut');if(!PLAN)return;
     <div class="chips">${(ph.chips||[]).map(c=>`<span class="chip ${c.c}">${esc(c.t)}</span>`).join('')}</div>
   </div>
   ${ph.kind==='fuel'&&live?`<button class="btn fill" id="lvFilled">REFUELLED · ENTER PUMP DATA ▸</button><div style="height:8px"></div>`:''}
-  ${ecamHTML(ph,true,true)}
-  ${nx?`<div class="next"><div style="font:12px var(--mono);letter-spacing:.08em"><span class="c-w">NEXT ▸ ${esc(nx.title)}</span> <span class="c-a">${distNext!=null?fmtKm(Math.max(0,distNext)):fmtDur(Math.max(0,(nx.start-Date.now()+num(S.live&&S.live.offset))/6e4))}</span></div>
-    <div class="chips">${(nx.chips||[]).map(c=>`<span class="chip ${c.c}">${esc(c.t)}</span>`).join('')}</div>
-    <div style="margin-top:6px">${prep.map(x=>`<div style="font:13px var(--mono)" class="c-c">${esc(x.k)} → ${esc(x.v)}</div>`).join('')}</div></div>`:''}
+  ${liveEcam(ph,s,timeMode)}
+  ${nx?`<div class="next"><div style="font:12px var(--mono);letter-spacing:.08em"><span class="c-w">NEXT ▸ ${esc(nx.title)}</span> <span class="c-a" id="nxDist">${distNext!=null?fmtKm(Math.max(0,distNext)):fmtDur(Math.max(0,(nx.start-Date.now()+num(S.live&&S.live.offset))/6e4))}</span></div>${near?`<div class="chips">${(nx.chips||[]).map(c=>`<span class="chip ${c.c}">${esc(c.t)}</span>`).join('')}</div><div style="margin-top:6px">${prep.map(x=>`<div style="font:13px var(--mono)" class="c-c">${esc(x.k)} → ${esc(x.v)}</div>`).join('')}</div>`:''}</div>`:''}
   ${live&&timeMode?`<div style="display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:8px"><button class="btn" id="lvPrev">◀ PREV</button><button class="btn g" id="lvSync">HERE NOW</button><button class="btn" id="lvNext">NEXT ▶</button></div>`:''}
   <div class="alert-chips">${ALERTS.slice(0,6).map((q,k)=>`<button data-q="${k}">${esc(q.short)}</button>`).join('')}</div>
   <h2>MILEAGE CHECK</h2>
@@ -1721,7 +1764,7 @@ function paintLive(full){const top=$('#dTop'),out=$('#liveOut');if(!PLAN)return;
       `<div class="hist c-g">${S.live.mpg.slice(-4).map(x=>`KM ${(x.odo/1000).toFixed(0)} · ${x.v.toFixed(1)}`).join('  ·  ')}</div>`};
   const go=$('#lvAvgGo');if(go)go.onclick=()=>{const v=num($('#lvAvg').value,0);if(!(v>3&&v<40)){$('#lvAvgOut').innerHTML='<span class="c-a">ENTER CAR AVG km/L</span>';return}mileageInput(v,ph);paintLive(true)};
   paintAvg();paintFollow()}
-let lastLiveRenderIdx=-1;
+let lastLiveRenderIdx=-1,lastSig='';
 function planAvgRange(a,b){let km=0,l=0;if(!PLAN)return 0;PLAN.phases.forEach(p=>{if(p.kind!=='zone')return;const x=Math.max(a,p.sStart),y=Math.min(b,p.sEnd);if(y>x){km+=(y-x)/1000;l+=p.fuel*(y-x)/(p.sEnd-p.sStart)}});
   if(km<0.5){const i=currentPhaseIdx();const z=PLAN.phases.slice(i).find(p=>p.kind==='zone');return z?z.kmpl:0}return km/l}
 function mileageAdvice(ph,ratio){const a=[];if(ratio>=0.97){a.push(E('MILEAGE','ON PLAN · MAINTAIN'));if(ph&&ph.band)a.push(E('CRUISE',ph.band[0]+'–'+ph.band[1]+' km/h','m'));return a}
